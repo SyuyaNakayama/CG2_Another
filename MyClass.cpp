@@ -207,6 +207,39 @@ ID3D12Device* DirectXInit::CreateDevice(D3D_FEATURE_LEVEL* levels, size_t levels
 	}
 }
 
+SwapChain::SwapChain()
+{
+	desc.Width = 1280;
+	desc.Height = 720;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // 色情報の書式
+	desc.SampleDesc.Count = 1; // マルチサンプルしない
+	desc.BufferUsage = DXGI_USAGE_BACK_BUFFER; // バックバッファ用
+	desc.BufferCount = 2; // バッファ数を2つに設定
+	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // フリップ後は破棄
+	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	backBuffers.resize(desc.BufferCount);
+	rtvDesc = {};
+	sc = nullptr;
+}
+void SwapChain::Create(IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue, HWND hwnd)
+{
+	assert(SUCCEEDED(
+		dxgiFactory->CreateSwapChainForHwnd(
+			commandQueue, hwnd, &desc, nullptr, nullptr,
+			(IDXGISwapChain1**)&sc)));
+}
+void SwapChain::Set(ID3D12Device* device, ID3D12DescriptorHeap* rtvHeap, D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc)
+{
+	for (size_t i = 0; i < backBuffers.size(); i++) {
+		sc->GetBuffer((UINT)i, IID_PPV_ARGS(&backBuffers[i]));
+		rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		rtvHandle.ptr += i * device->GetDescriptorHandleIncrementSize(rtvHeapDesc.Type);
+		rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		device->CreateRenderTargetView(backBuffers[i], &rtvDesc, rtvHandle);
+	}
+}
+
 void UseBlendMode(D3D12_RENDER_TARGET_BLEND_DESC& blenddesc)
 {
 	blenddesc.BlendEnable = true;

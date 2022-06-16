@@ -291,14 +291,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		commandList->ResourceBarrier(1, &barrierDesc);
 
 		// 2.描画先の変更
-		// レンダーターゲットビューのハンドルを取得
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-		rtvHandle.ptr += bbIndex * device->GetDescriptorHandleIncrementSize(rtvHeapDesc.Type);
-		commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+		swapChain.GetHandle(device, rtvHeap, rtvHeapDesc, bbIndex);
+		commandList->OMSetRenderTargets(1, &swapChain.rtvHandle, false, nullptr);
 
 		// 3.画面クリア R G B A
 		FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; // 青っぽい色
-		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		commandList->ClearRenderTargetView(swapChain.rtvHandle, clearColor, 0, nullptr);
 #pragma region 描画コマンド
 		// ビューポート設定コマンド
 		D3D12_VIEWPORT viewport{};

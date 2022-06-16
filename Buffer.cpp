@@ -118,6 +118,26 @@ TextureBuf::TextureBuf()
 
 	metadata.format = MakeSRGB(metadata.format);
 }
+void TextureBuf::SetResource()
+{
+	resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	resDesc.Format = metadata.format;
+	resDesc.Width = metadata.width;
+	resDesc.Height = (UINT)metadata.height;
+	resDesc.DepthOrArraySize = (UINT16)metadata.arraySize;
+	resDesc.MipLevels = (UINT16)metadata.mipLevels;
+	resDesc.SampleDesc.Count = 1;
+}
+void TextureBuf::CreateMipMap()
+{
+	HRESULT result = GenerateMipMaps(scratchImg.GetImages(), scratchImg.GetImageCount(),
+		scratchImg.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain);
+	if (SUCCEEDED(result))
+	{
+		scratchImg = std::move(mipChain);
+		metadata = scratchImg.GetMetadata();
+	}
+}
 void TextureBuf::Transfer()
 {
 	HRESULT result;

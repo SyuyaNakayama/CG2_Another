@@ -35,7 +35,6 @@ public:
 	void Mapping();
 };
 
-
 class VertexBuf :public Buffer
 {
 public:
@@ -78,30 +77,8 @@ public:
 	D3D12_SHADER_RESOURCE_VIEW_DESC view;
 
 	TextureBuf();
-	void SetResource()
-	{
-		resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		resDesc.Format = metadata.format;
-		resDesc.Width = metadata.width;
-		resDesc.Height = (UINT)metadata.height;
-		resDesc.DepthOrArraySize = (UINT16)metadata.arraySize;
-		resDesc.MipLevels = (UINT16)metadata.mipLevels;
-		resDesc.SampleDesc.Count = 1;
-	}
-	void LoadTexture()
-	{
-		LoadFromWICFile(L"Resources/Map.png", WIC_FLAGS_NONE, &metadata, scratchImg);
-	}
-	void CreateMipMap()
-	{
-		HRESULT result = GenerateMipMaps(scratchImg.GetImages(), scratchImg.GetImageCount(),
-			scratchImg.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain);
-		if (SUCCEEDED(result))
-		{
-			scratchImg = std::move(mipChain);
-			metadata = scratchImg.GetMetadata();
-		}
-	}
+	void SetResource();
+	void CreateMipMap();
 	void Transfer();
 	void CreateView();
 };
