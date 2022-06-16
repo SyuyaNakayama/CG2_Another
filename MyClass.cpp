@@ -215,7 +215,7 @@ RenderTargetView::RenderTargetView()
 	rtvHandle = {};
 	devicePtr = nullptr;
 }
-void RenderTargetView::GetHandle(UINT bbIndex)
+void RenderTargetView::GetHandle()
 {
 	rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
 	rtvHandle.ptr += bbIndex * devicePtr->GetDescriptorHandleIncrementSize(rtvHeapDesc.Type);
@@ -242,7 +242,7 @@ void SwapChain::Create(IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQu
 			commandQueue, hwnd, &scDesc, nullptr, nullptr,
 			(IDXGISwapChain1**)&sc)));
 }
-void SwapChain::Set()
+void SwapChain::CreateRenderTargetView()
 {
 	for (size_t i = 0; i < backBuffers.size(); i++)
 	{
@@ -262,37 +262,69 @@ void SwapChain::CreateDescriptorHeap()
 	// デスクリプタヒープの生成
 	devicePtr->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
 }
-
-void UseBlendMode(D3D12_RENDER_TARGET_BLEND_DESC& blenddesc)
+ID3D12Resource* SwapChain::GetBackBuffersPtr()
 {
-	blenddesc.BlendEnable = true;
-	blenddesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;	// 加算
-	blenddesc.SrcBlendAlpha = D3D12_BLEND_ONE;		// ソースの値を100%使う
-	blenddesc.DestBlendAlpha = D3D12_BLEND_ZERO;	// 使わない
+	bbIndex = sc->GetCurrentBackBufferIndex();
+	return backBuffers[bbIndex];
 }
-void SetBlend(D3D12_RENDER_TARGET_BLEND_DESC& blenddesc, int blendMode)
+
+Blend::Blend(D3D12_RENDER_TARGET_BLEND_DESC* blenddesc)
+{
+	desc = blenddesc;
+	desc->RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+}
+void Blend::UseBlendMode()
+{
+	desc->BlendEnable = true;
+	desc->BlendOpAlpha = D3D12_BLEND_OP_ADD;	// 加算
+	desc->SrcBlendAlpha = D3D12_BLEND_ONE;		// ソースの値を100%使う
+	desc->DestBlendAlpha = D3D12_BLEND_ZERO;	// 使わない
+}
+void Blend::SetBlend(BlendMode blendMode)
 {
 	switch (blendMode)
 	{
-	case BLENDMODE_ADD:
-		blenddesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blenddesc.SrcBlend = D3D12_BLEND_ONE;
-		blenddesc.DestBlend = D3D12_BLEND_ONE;
+	case Blend::ADD:
+		desc->BlendOp = D3D12_BLEND_OP_ADD;
+		desc->SrcBlend = D3D12_BLEND_ONE;
+		desc->DestBlend = D3D12_BLEND_ONE;
 		break;
-	case BLENDMODE_SUB:
-		blenddesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
-		blenddesc.SrcBlend = D3D12_BLEND_ONE;
-		blenddesc.DestBlend = D3D12_BLEND_ONE;
+	case Blend::SUB:
+		desc->BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
+		desc->SrcBlend = D3D12_BLEND_ONE;
+		desc->DestBlend = D3D12_BLEND_ONE;
 		break;
-	case BLENDMODE_COLORFLIP:
-		blenddesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blenddesc.SrcBlend = D3D12_BLEND_INV_DEST_COLOR;
-		blenddesc.DestBlend = D3D12_BLEND_ZERO;
+	case Blend::COLORFLIP:
+		desc->BlendOp = D3D12_BLEND_OP_ADD;
+		desc->SrcBlend = D3D12_BLEND_INV_DEST_COLOR;
+		desc->DestBlend = D3D12_BLEND_ZERO;
 		break;
-	case BLENDMODE_ALPHA:
-		blenddesc.BlendOp = D3D12_BLEND_OP_ADD;
-		blenddesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		blenddesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	case Blend::ALPHA:
+		desc->BlendOp = D3D12_BLEND_OP_ADD;
+		desc->SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		desc->DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 		break;
 	}
+}
+
+ResourceBarrier::ResourceBarrier()
+{
+	desc = {};
+	desc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+}
+void ResourceBarrier::SetState(ID3D12GraphicsCommandList* commandList)
+{
+	static int state = 0;
+	if (!(state++))
+	{
+		desc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+		desc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	}
+	else
+	{
+		desc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+		desc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	}
+	commandList->ResourceBarrier(1, &desc);
+	state %= 2;
 }

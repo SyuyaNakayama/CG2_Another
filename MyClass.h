@@ -17,15 +17,6 @@
 #pragma comment(lib, "dxguid.lib")
 using namespace DirectX;
 
-enum BlendMode
-{
-	BLENDMODE_ADD,
-	BLENDMODE_SUB,
-	BLENDMODE_COLORFLIP,
-	BLENDMODE_ALPHA,
-};
-void UseBlendMode(D3D12_RENDER_TARGET_BLEND_DESC& blenddesc);
-void SetBlend(D3D12_RENDER_TARGET_BLEND_DESC& blenddesc, int blendMode = BLENDMODE_ADD);
 LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 struct Int2 { int width, height; };
 
@@ -82,6 +73,7 @@ public:
 
 class DirectXInit
 {
+private:
 	std::vector<IDXGIAdapter4*> adapters;
 	IDXGIAdapter4* tmpAdapter;
 	D3D_FEATURE_LEVEL featureLevel;
@@ -100,23 +92,54 @@ protected:
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
 	ID3D12Device* devicePtr;
+	UINT bbIndex;
 public:
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
 
 	RenderTargetView();
-	void GetHandle(UINT bbIndex);
+	void GetHandle();
 };
 
 class SwapChain :public RenderTargetView
 {
+private:
 	DXGI_SWAP_CHAIN_DESC1 scDesc;
+
 public:
 	std::vector<ID3D12Resource*> backBuffers;
 	IDXGISwapChain4* sc;
 
 	SwapChain(ID3D12Device* device);
 	void Create(IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue, HWND hwnd);
-	void Set();
+	void CreateRenderTargetView();
 	void Flip() { assert(SUCCEEDED(sc->Present(1, 0))); }
 	void CreateDescriptorHeap();
+	ID3D12Resource* GetBackBuffersPtr();
+};
+
+class Blend
+{
+private:
+	D3D12_RENDER_TARGET_BLEND_DESC* desc;
+public:
+	enum BlendMode
+	{
+		ADD,
+		SUB,
+		COLORFLIP,
+		ALPHA,
+	};
+
+	Blend(D3D12_RENDER_TARGET_BLEND_DESC* blenddesc);
+	void UseBlendMode();
+	void SetBlend(BlendMode blendMode);
+};
+
+class ResourceBarrier
+{
+public:
+	D3D12_RESOURCE_BARRIER desc;
+
+	ResourceBarrier();
+	void SetState(ID3D12GraphicsCommandList* commandList);
 };

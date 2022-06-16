@@ -67,7 +67,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	SwapChain swapChain(device);
 	swapChain.Create(directX.dxgiFactory, commandQueue, wAPI.hwnd);
 	swapChain.CreateDescriptorHeap();
-	swapChain.Set();
+	swapChain.CreateRenderTargetView();
 	// フェンスの生成
 	ID3D12Fence* fence = nullptr;
 	UINT64 fenceVal = 0;
@@ -77,12 +77,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// DirectInputの初期化&キーボードデバイスの生成
 	Keyboard keyboard;
 	keyboard.GetInstance(wAPI.w);
-
-	// 入力データ形式を標準設定でセット
-	keyboard.SetDataStdFormat();
-
-	// 排他制御レベルのセット
-	keyboard.SetCooperativeLevel(wAPI.hwnd);
+	keyboard.SetDataStdFormat(); // 入力データ形式を標準設定でセット
+	keyboard.SetCooperativeLevel(wAPI.hwnd); // 排他制御レベルのセット
 #pragma endregion
 #pragma region 描画初期化処理
 #pragma region 定数バッファ
@@ -206,11 +202,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	pipeline.SetOthers(); // その他の設定
 
 	// レンダーターゲットのブレンド設定
-	D3D12_RENDER_TARGET_BLEND_DESC& blenddesc = pipeline.desc.BlendState.RenderTarget[0];
-	blenddesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL; // RBGA全てのチャンネルを描画
-
-	UseBlendMode(blenddesc); // ブレンドを有効にする
-	SetBlend(blenddesc, BLENDMODE_ALPHA); // 半透明合成
+	Blend blend(&pipeline.desc.BlendState.RenderTarget[0]);
+	blend.UseBlendMode();
+	blend.SetBlend(Blend::BlendMode::ALPHA);
 
 	D3D12_DESCRIPTOR_RANGE descriptorRange{};
 	descriptorRange.NumDescriptors = 1;
@@ -240,8 +234,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	pipeline.CreatePipelineState(device);
 #pragma endregion
 #pragma endregion
+#pragma region ゲームループで使う変数の定義
 	float angle = 0.0f;
-
+	//D3D12_RESOURCE_BARRIER barrierDesc{};
+	ResourceBarrier barrier{};
+	FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; // 青っぽい色
+	D3D12_VIEWPORT viewport{};
+	D3D12_RECT scissorRect{};
+#pragma endregion
 	// ゲームループ
 	while (1)
 	{
@@ -273,26 +273,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			cb[ConstBuf::Type::Transform].mapTransform->mat = matView * matProjection;
 		}
 #pragma endregion
-		// バックバッファの番号を取得(2つなので0番か1番)
-		UINT bbIndex = swapChain.sc->GetCurrentBackBufferIndex();
-
 		// 1.リソースバリアで書き込み可能に変更
-		D3D12_RESOURCE_BARRIER barrierDesc{};
-		barrierDesc.Transition.pResource = swapChain.backBuffers[bbIndex]; // バックバッファを指定
-		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT; // 表示状態から
-		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET; // 描画状態へ
-		commandList->ResourceBarrier(1, &barrierDesc);
+		barrier.desc.Transition.pResource = swapChain.GetBackBuffersPtr(); // バックバッファを指定
+		barrier.SetState(commandList);
 
 		// 2.描画先の変更
-		swapChain.GetHandle(bbIndex);
+		swapChain.GetHandle();
 		commandList->OMSetRenderTargets(1, &swapChain.rtvHandle, false, nullptr);
 
 		// 3.画面クリア R G B A
-		FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; // 青っぽい色
 		commandList->ClearRenderTargetView(swapChain.rtvHandle, clearColor, 0, nullptr);
 #pragma region 描画コマンド
 		// ビューポート設定コマンド
-		D3D12_VIEWPORT viewport{};
 		viewport.Width = WIN_SIZE.width;
 		viewport.Height = WIN_SIZE.height;
 		viewport.TopLeftX = 0;
@@ -301,7 +293,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		viewport.MaxDepth = 1.0f;
 
 		// シザー矩形
-		D3D12_RECT scissorRect{};
 		scissorRect.left = 0; // 切り抜き座標左
 		scissorRect.right = scissorRect.left + WIN_SIZE.width; // 切り抜き座標右
 		scissorRect.top = 0; // 切り抜き座標上
@@ -329,12 +320,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma endregion
 #pragma region 画面入れ替え
 		// 5.リソースバリアを戻す
-		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET; // 描画状態から
-		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT; // 表示状態へ
-		commandList->ResourceBarrier(1, &barrierDesc);
+		barrier.SetState(commandList);
 		// 命令のクローズ
-		result = commandList->Close();
-		assert(SUCCEEDED(result));
+		assert(SUCCEEDED(commandList->Close()));
 		// コマンドリストの実行
 		ID3D12CommandList* commandLists[] = { commandList };
 		commandQueue->ExecuteCommandLists(1, commandLists);
