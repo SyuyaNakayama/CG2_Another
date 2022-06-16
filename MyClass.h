@@ -95,27 +95,28 @@ public:
 
 class RenderTargetView
 {
-private:
-
-public:
-};
-
-class SwapChain
-{
+protected:
+	ID3D12DescriptorHeap* rtvHeap;
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+	ID3D12Device* devicePtr;
 public:
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
+
+	RenderTargetView();
+	void GetHandle(UINT bbIndex);
+};
+
+class SwapChain :public RenderTargetView
+{
+	DXGI_SWAP_CHAIN_DESC1 scDesc;
+public:
 	std::vector<ID3D12Resource*> backBuffers;
 	IDXGISwapChain4* sc;
-	DXGI_SWAP_CHAIN_DESC1 desc;
 
-	SwapChain();
+	SwapChain(ID3D12Device* device);
 	void Create(IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue, HWND hwnd);
-	void Set(ID3D12Device* device, ID3D12DescriptorHeap* rtvHeap, D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc);
+	void Set();
 	void Flip() { assert(SUCCEEDED(sc->Present(1, 0))); }
-	void GetHandle(ID3D12Device* device,ID3D12DescriptorHeap* rtvHeap, D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc,UINT bbIndex)
-	{
-		rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-		rtvHandle.ptr += bbIndex * device->GetDescriptorHandleIncrementSize(rtvHeapDesc.Type);
-	}
+	void CreateDescriptorHeap();
 };

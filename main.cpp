@@ -30,7 +30,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ID3D12CommandAllocator* commandAllocator = nullptr;
 	ID3D12GraphicsCommandList* commandList = nullptr;
 	ID3D12CommandQueue* commandQueue = nullptr;
-	ID3D12DescriptorHeap* rtvHeap = nullptr;
 
 	// 対応レベルの配列
 	D3D_FEATURE_LEVEL levels[] =
@@ -65,16 +64,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	assert(SUCCEEDED(result));
 
 	// スワップチェーンの設定
-	SwapChain swapChain{};
+	SwapChain swapChain(device);
 	swapChain.Create(directX.dxgiFactory, commandQueue, wAPI.hwnd);
-	// デスクリプタヒープの設定
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー
-	rtvHeapDesc.NumDescriptors = swapChain.desc.BufferCount; // 裏表の2つ
-	// デスクリプタヒープの生成
-	device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
-
-	swapChain.Set(device, rtvHeap, rtvHeapDesc);
+	swapChain.CreateDescriptorHeap();
+	swapChain.Set();
 	// フェンスの生成
 	ID3D12Fence* fence = nullptr;
 	UINT64 fenceVal = 0;
@@ -291,7 +284,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		commandList->ResourceBarrier(1, &barrierDesc);
 
 		// 2.描画先の変更
-		swapChain.GetHandle(device, rtvHeap, rtvHeapDesc, bbIndex);
+		swapChain.GetHandle(bbIndex);
 		commandList->OMSetRenderTargets(1, &swapChain.rtvHandle, false, nullptr);
 
 		// 3.画面クリア R G B A
@@ -362,12 +355,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			}
 		}
 
-		// キューをクリア
-		result = commandAllocator->Reset();
-		assert(SUCCEEDED(result));
-		// 再びコマンドリストを貯める準備
-		result = commandList->Reset(commandAllocator, nullptr);
-		assert(SUCCEEDED(result));
+		assert(SUCCEEDED(commandAllocator->Reset())); // キューをクリア
+		assert(SUCCEEDED(commandList->Reset(commandAllocator, nullptr))); // 再びコマンドリストを貯める準備
 #pragma endregion
 	}
 
