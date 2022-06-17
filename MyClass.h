@@ -143,3 +143,42 @@ public:
 	ResourceBarrier();
 	void SetState(ID3D12GraphicsCommandList* commandList);
 };
+
+class Command
+{
+private:
+	ID3D12CommandAllocator* commandAllocator;
+	ID3D12GraphicsCommandList* commandList;
+	ID3D12CommandQueue* commandQueue;
+	D3D12_COMMAND_QUEUE_DESC commandQueueDesc;
+	ID3D12Device* devicePtr;
+public:
+	Command(ID3D12Device* device)
+	{
+		commandAllocator = nullptr;
+		commandList = nullptr;
+		commandQueue = nullptr;
+		commandQueueDesc = {};
+		devicePtr = device;
+	}
+	void CreateCommandAllocator()
+	{
+		assert(SUCCEEDED(
+			devicePtr->CreateCommandAllocator(
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			IID_PPV_ARGS(&commandAllocator))));
+	}
+	void CreateCommandList()
+	{
+		assert(SUCCEEDED(
+			devicePtr->CreateCommandList(0,
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			commandAllocator, nullptr,
+			IID_PPV_ARGS(&commandList))));
+	}
+	void CreateCommandQueue()
+	{
+		assert(SUCCEEDED(
+			devicePtr->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue))));
+	}
+};

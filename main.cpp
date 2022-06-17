@@ -281,7 +281,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		swapChain.GetHandle();
 		commandList->OMSetRenderTargets(1, &swapChain.rtvHandle, false, nullptr);
 
-		// 3.画面クリア R G B A
+		// 3.画面クリアRGBA
 		commandList->ClearRenderTargetView(swapChain.rtvHandle, clearColor, 0, nullptr);
 #pragma region 描画コマンド
 		// ビューポート設定コマンド
