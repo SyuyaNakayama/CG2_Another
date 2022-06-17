@@ -9,7 +9,7 @@ void Buffer::SetResource(size_t width, size_t height, D3D12_RESOURCE_DIMENSION D
 	resDesc.SampleDesc.Count = 1;
 	resDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 }
-void Buffer::CreateBuffer(ID3D12Device* device, D3D12_HEAP_PROPERTIES heapProp)
+void Buffer::CreateBuffer(ID3D12Device* device)
 {
 	assert(SUCCEEDED(
 		device->CreateCommittedResource(

@@ -368,3 +368,43 @@ void Command::ExecuteCommandLists()
 	cLists = list;
 	queue->ExecuteCommandLists(1, &cLists);
 }
+
+Fence::Fence()
+{
+	f = nullptr;
+	val = 0;
+}
+void Fence::CreateFence(ID3D12Device* device)
+{
+	assert(SUCCEEDED(device->CreateFence(val, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&f))));
+}
+void Fence::Wait()
+{
+	if (f->GetCompletedValue() != val)
+	{
+		HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+		f->SetEventOnCompletion(val, event);
+		if (event != 0)
+		{
+			WaitForSingleObject(event, INFINITE);
+			CloseHandle(event);
+		}
+	}
+}
+
+void ShaderResourceView::SetHeapDesc()
+{
+	heapDesc = {};
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	heapDesc.NumDescriptors = 2056;
+}
+void ShaderResourceView::CreateDescriptorHeap(ID3D12Device* device)
+{
+	assert(SUCCEEDED(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap))));
+}
+void ShaderResourceView::GetDescriptorHandleForHeapStart(Type type)
+{
+	if (type == CPU) { handle = heap->GetCPUDescriptorHandleForHeapStart(); }
+	if (type == GPU) { gpuHandle = heap->GetGPUDescriptorHandleForHeapStart(); }
+}

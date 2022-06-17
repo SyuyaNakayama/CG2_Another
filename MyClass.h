@@ -162,3 +162,32 @@ public:
 	void Reset();
 	void ExecuteCommandLists();
 };
+
+class Fence
+{
+private:
+	HANDLE event;
+public:
+	ID3D12Fence* f;
+	UINT64 val;
+
+	Fence();
+	void CreateFence(ID3D12Device* device);
+	void Wait();
+};
+
+class ShaderResourceView
+{
+private:
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
+public:
+	enum Type { CPU, GPU };
+
+	ID3D12DescriptorHeap* heap;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE handle;
+
+	void SetHeapDesc();
+	void CreateDescriptorHeap(ID3D12Device* device);
+	void GetDescriptorHandleForHeapStart(Type type);
+};

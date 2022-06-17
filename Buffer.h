@@ -12,9 +12,18 @@ protected:
 public:
 	D3D12_RESOURCE_DESC resDesc;
 	ID3D12Resource* buff;
+	D3D12_HEAP_PROPERTIES heapProp;
 
 	void SetResource(size_t width, size_t height, D3D12_RESOURCE_DIMENSION Dimension);
-	void CreateBuffer(ID3D12Device* device, D3D12_HEAP_PROPERTIES heapProp);
+	void SetHeapProp(D3D12_HEAP_TYPE Type, D3D12_CPU_PAGE_PROPERTY CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+		D3D12_MEMORY_POOL MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN)
+	{
+		heapProp = {};
+		heapProp.Type = Type;
+		heapProp.CPUPageProperty = CPUPageProperty;
+		heapProp.MemoryPoolPreference = MemoryPoolPreference;
+	}
+	void CreateBuffer(ID3D12Device* device);
 };
 
 class ConstBuf :public Buffer
@@ -46,7 +55,6 @@ public:
 private:
 	Vertex* map;
 public:
-
 	D3D12_VERTEX_BUFFER_VIEW view;
 	UINT size;
 

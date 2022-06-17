@@ -25,7 +25,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		debugController->EnableDebugLayer();
 	}
 #endif
-	HRESULT result;
 	ID3D12Device* device = nullptr;
 
 	// 対応レベルの配列
@@ -57,10 +56,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	swapChain.CreateDescriptorHeap();
 	swapChain.CreateRenderTargetView();
 	// フェンスの生成
-	ID3D12Fence* fence = nullptr;
-	UINT64 fenceVal = 0;
-	result = device->CreateFence(fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
-	assert(SUCCEEDED(result));
+	Fence fence{};
+	fence.CreateFence(device);
 
 	// DirectInputの初期化&キーボードデバイスの生成
 	Keyboard keyboard;
@@ -70,15 +67,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma endregion
 #pragma region 描画初期化処理
 #pragma region 定数バッファ
-	// ヒープ設定
-	D3D12_HEAP_PROPERTIES cbHeapProp{};
-	cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
-
 	ConstBuf cb[2] = { ConstBuf::Type::Material,ConstBuf::Type::Transform };
 	for (size_t i = 0; i < _countof(cb); i++)
 	{
 		cb[i].SetResource(cb[i].size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
-		cb[i].CreateBuffer(device, cbHeapProp);
+		cb[i].SetHeapProp(D3D12_HEAP_TYPE_UPLOAD); // ヒープ設定
+		cb[i].CreateBuffer(device);
 		cb[i].Mapping(); // 定数バッファのマッピング
 	}
 
@@ -110,13 +104,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{{  50.0f, 50.0f,0.0f },{1.0f,0.0f}}, // 右上
 	};
 
-	// 頂点バッファの設定
-	D3D12_HEAP_PROPERTIES heapProp{}; // ヒープ設定
-	heapProp.Type = D3D12_HEAP_TYPE_UPLOAD; // GPUへの転送用
-
 	VertexBuf vertex(static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices)));
 	vertex.SetResource(vertex.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
-	vertex.CreateBuffer(device, heapProp);
+	vertex.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD);
+	vertex.CreateBuffer(device);
 	vertex.Mapping(vertices, _countof(vertices));
 	vertex.CreateView(); // 頂点バッファビューの作成
 #pragma endregion
@@ -130,34 +121,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	IndexBuf index(static_cast<UINT>(sizeof(uint16_t) * _countof(indices)));
 	index.SetResource(index.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
-	index.CreateBuffer(device, heapProp);
+	index.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD);
+	index.CreateBuffer(device);
 	index.Mapping(indices, _countof(indices));
 	index.CreateView(); // インデックスビューの作成
 #pragma endregion
 #pragma region テクスチャバッファ
-	D3D12_HEAP_PROPERTIES textureHeapProp{};
-	textureHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
-	textureHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-	textureHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-
 	TextureBuf texture{};
 	texture.SetResource();
-	texture.CreateBuffer(device, textureHeapProp);
+	texture.SetHeapProp(D3D12_HEAP_TYPE_CUSTOM, D3D12_CPU_PAGE_PROPERTY_WRITE_BACK, D3D12_MEMORY_POOL_L0);
+	texture.CreateBuffer(device);
 	texture.Transfer();
 
-	const int maxSRVCount = 2056;
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NumDescriptors = maxSRVCount;
-
-	ID3D12DescriptorHeap* srvHeap = nullptr;
-	assert(SUCCEEDED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap))));
-
-	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
+	ShaderResourceView srv{};
+	srv.SetHeapDesc();
+	srv.CreateDescriptorHeap(device);
+	srv.GetDescriptorHandleForHeapStart(ShaderResourceView::Type::CPU);
 
 	texture.CreateView();
-	device->CreateShaderResourceView(texture.buff, &texture.view, srvHandle);
+	device->CreateShaderResourceView(texture.buff, &texture.view, srv.handle);
 #pragma endregion
 #pragma region シェーダ
 	ID3DBlob* errorBlob = nullptr; // エラーオブジェクト
@@ -224,7 +206,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma endregion
 #pragma region ゲームループで使う変数の定義
 	float angle = 0.0f;
-	//D3D12_RESOURCE_BARRIER barrierDesc{};
 	ResourceBarrier barrier{};
 	FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; // 青っぽい色
 	D3D12_VIEWPORT viewport{};
@@ -298,9 +279,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 定数バッファビューの設定コマンド
 		command.list->SetGraphicsRootConstantBufferView(0, cb[ConstBuf::Type::Material].buff->GetGPUVirtualAddress());
 		command.list->SetGraphicsRootConstantBufferView(2, cb[ConstBuf::Type::Transform].buff->GetGPUVirtualAddress());
-		command.list->SetDescriptorHeaps(1, &srvHeap);
-		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();
-		command.list->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
+		command.list->SetDescriptorHeaps(1, &srv.heap);
+		srv.GetDescriptorHandleForHeapStart(ShaderResourceView::Type::GPU);
+		command.list->SetGraphicsRootDescriptorTable(1, srv.gpuHandle);
 
 		// 描画コマンド
 		command.list->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0); // 全ての頂点を使って描画
@@ -317,17 +298,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		swapChain.Flip();
 
 		// コマンドの実行完了を待つ
-		command.queue->Signal(fence, ++fenceVal);
-		if (fence->GetCompletedValue() != fenceVal)
-		{
-			HANDLE event = CreateEvent(nullptr, false, false, nullptr);
-			fence->SetEventOnCompletion(fenceVal, event);
-			if (event != 0)
-			{
-				WaitForSingleObject(event, INFINITE);
-				CloseHandle(event);
-			}
-		}
+		command.queue->Signal(fence.f, ++fence.val);
+		fence.Wait();
 
 		command.Reset();
 #pragma endregion
