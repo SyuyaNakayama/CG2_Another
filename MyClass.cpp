@@ -328,3 +328,43 @@ void ResourceBarrier::SetState(ID3D12GraphicsCommandList* commandList)
 	commandList->ResourceBarrier(1, &desc);
 	state %= 2;
 }
+
+Command::Command(ID3D12Device* device)
+{
+	allocator = nullptr;
+	list = nullptr;
+	queue = nullptr;
+	queueDesc = {};
+	devicePtr = device;
+	cLists = {};
+}
+void Command::CreateCommandAllocator()
+{
+	assert(SUCCEEDED(
+		devicePtr->CreateCommandAllocator(
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			IID_PPV_ARGS(&allocator))));
+}
+void Command::CreateCommandList()
+{
+	assert(SUCCEEDED(
+		devicePtr->CreateCommandList(0,
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			allocator, nullptr,
+			IID_PPV_ARGS(&list))));
+}
+void Command::CreateCommandQueue()
+{
+	assert(SUCCEEDED(
+		devicePtr->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&queue))));
+}
+void Command::Reset()
+{
+	assert(SUCCEEDED(allocator->Reset())); // キューをクリア
+	assert(SUCCEEDED(list->Reset(allocator, nullptr))); // 再びコマンドリストを貯める準備
+}
+void Command::ExecuteCommandLists()
+{
+	cLists = list;
+	queue->ExecuteCommandLists(1, &cLists);
+}

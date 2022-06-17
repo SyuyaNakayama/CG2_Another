@@ -27,9 +27,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #endif
 	HRESULT result;
 	ID3D12Device* device = nullptr;
-	ID3D12CommandAllocator* commandAllocator = nullptr;
-	ID3D12GraphicsCommandList* commandList = nullptr;
-	ID3D12CommandQueue* commandQueue = nullptr;
 
 	// 対応レベルの配列
 	D3D_FEATURE_LEVEL levels[] =
@@ -44,28 +41,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	directX.AdapterChoice();
 	device = directX.CreateDevice(levels, _countof(levels), device);
 
+	Command command(device);
 	// コマンドアロケータを生成
-	result = device->CreateCommandAllocator(
-		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		IID_PPV_ARGS(&commandAllocator));
-	assert(SUCCEEDED(result));
+	command.CreateCommandAllocator();
 
 	// コマンドリストを生成
-	result = device->CreateCommandList(0,
-		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		commandAllocator, nullptr,
-		IID_PPV_ARGS(&commandList));
-	assert(SUCCEEDED(result));
+	command.CreateCommandList();
 
-	//コマンドキューの設定
-	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 	//コマンドキューを生成
-	result = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue));
-	assert(SUCCEEDED(result));
+	command.CreateCommandQueue();
 
 	// スワップチェーンの設定
 	SwapChain swapChain(device);
-	swapChain.Create(directX.dxgiFactory, commandQueue, wAPI.hwnd);
+	swapChain.Create(directX.dxgiFactory, command.queue, wAPI.hwnd);
 	swapChain.CreateDescriptorHeap();
 	swapChain.CreateRenderTargetView();
 	// フェンスの生成
@@ -275,14 +263,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma endregion
 		// 1.リソースバリアで書き込み可能に変更
 		barrier.desc.Transition.pResource = swapChain.GetBackBuffersPtr(); // バックバッファを指定
-		barrier.SetState(commandList);
+		barrier.SetState(command.list);
 
 		// 2.描画先の変更
 		swapChain.GetHandle();
-		commandList->OMSetRenderTargets(1, &swapChain.rtvHandle, false, nullptr);
+		command.list->OMSetRenderTargets(1, &swapChain.rtvHandle, false, nullptr);
 
 		// 3.画面クリアRGBA
-		commandList->ClearRenderTargetView(swapChain.rtvHandle, clearColor, 0, nullptr);
+		command.list->ClearRenderTargetView(swapChain.rtvHandle, clearColor, 0, nullptr);
 #pragma region 描画コマンド
 		// ビューポート設定コマンド
 		viewport.Width = WIN_SIZE.width;
@@ -299,39 +287,37 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		scissorRect.bottom = scissorRect.top + WIN_SIZE.height; // 切り抜き座標下
 
 		// シザー矩形設定コマンドを、コマンドリストに積む
-		commandList->RSSetScissorRects(1, &scissorRect);
+		command.list->RSSetScissorRects(1, &scissorRect);
 		// パイプラインステートとルートシグネチャの設定コマンド
-		commandList->SetPipelineState(pipeline.state);
-		commandList->SetGraphicsRootSignature(rootSignature.rs);
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // プリミティブ形状の設定コマンド
-		commandList->IASetVertexBuffers(0, 1, &vertex.view); // 頂点バッファビューの設定コマンド
-		commandList->IASetIndexBuffer(&index.view); // 頂点バッファビューの設定コマンド
-		commandList->RSSetViewports(1, &viewport); // ビューポート設定コマンドを、コマンドリストに積む
+		command.list->SetPipelineState(pipeline.state);
+		command.list->SetGraphicsRootSignature(rootSignature.rs);
+		command.list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // プリミティブ形状の設定コマンド
+		command.list->IASetVertexBuffers(0, 1, &vertex.view); // 頂点バッファビューの設定コマンド
+		command.list->IASetIndexBuffer(&index.view); // 頂点バッファビューの設定コマンド
+		command.list->RSSetViewports(1, &viewport); // ビューポート設定コマンドを、コマンドリストに積む
 		// 定数バッファビューの設定コマンド
-		commandList->SetGraphicsRootConstantBufferView(0, cb[ConstBuf::Type::Material].buff->GetGPUVirtualAddress());
-		commandList->SetDescriptorHeaps(1, &srvHeap);
+		command.list->SetGraphicsRootConstantBufferView(0, cb[ConstBuf::Type::Material].buff->GetGPUVirtualAddress());
+		command.list->SetGraphicsRootConstantBufferView(2, cb[ConstBuf::Type::Transform].buff->GetGPUVirtualAddress());
+		command.list->SetDescriptorHeaps(1, &srvHeap);
 		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();
-		commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
-		commandList->SetGraphicsRootConstantBufferView(2, cb[ConstBuf::Type::Transform].buff->GetGPUVirtualAddress());
+		command.list->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
 
 		// 描画コマンド
-		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0); // 全ての頂点を使って描画
+		command.list->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0); // 全ての頂点を使って描画
 #pragma endregion
 #pragma endregion
 #pragma region 画面入れ替え
 		// 5.リソースバリアを戻す
-		barrier.SetState(commandList);
+		barrier.SetState(command.list);
 		// 命令のクローズ
-		assert(SUCCEEDED(commandList->Close()));
+		assert(SUCCEEDED(command.list->Close()));
 		// コマンドリストの実行
-		ID3D12CommandList* commandLists[] = { commandList };
-		commandQueue->ExecuteCommandLists(1, commandLists);
-
+		command.ExecuteCommandLists();
 		// 画面に表示するバッファをフリップ(裏表の入替え)
 		swapChain.Flip();
 
 		// コマンドの実行完了を待つ
-		commandQueue->Signal(fence, ++fenceVal);
+		command.queue->Signal(fence, ++fenceVal);
 		if (fence->GetCompletedValue() != fenceVal)
 		{
 			HANDLE event = CreateEvent(nullptr, false, false, nullptr);
@@ -343,8 +329,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			}
 		}
 
-		assert(SUCCEEDED(commandAllocator->Reset())); // キューをクリア
-		assert(SUCCEEDED(commandList->Reset(commandAllocator, nullptr))); // 再びコマンドリストを貯める準備
+		command.Reset();
 #pragma endregion
 	}
 
