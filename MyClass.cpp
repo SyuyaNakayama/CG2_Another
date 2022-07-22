@@ -87,30 +87,30 @@ void Pipeline::SetShader(ShaderBlob vs, ShaderBlob ps)
 	desc.PS.pShaderBytecode = ps.blob->GetBufferPointer();
 	desc.PS.BytecodeLength = ps.blob->GetBufferSize();
 }
-void Pipeline::SetSampleMask()
-{
-	desc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK; // 標準設定
-}
-void Pipeline::SetRasterizer()
-{
-	desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
-	desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
-	desc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
-}
 void Pipeline::SetInputLayout(D3D12_INPUT_ELEMENT_DESC* inputLayout, UINT layoutNum)
 {
 	desc.InputLayout.pInputElementDescs = inputLayout;
 	desc.InputLayout.NumElements = layoutNum;
 }
-void Pipeline::SetPrimitiveTopology()
-{
-	desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-}
 void Pipeline::SetOthers()
 {
+	// サンプルマスクの設定
+	desc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK; // 標準設定
+	// ラスタライザの設定
+	desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
+	desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
+	desc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
+	// 図形の形状設定
+	desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	// その他の設定
 	desc.NumRenderTargets = 1; // 描画対象は1つ
 	desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // 0~255指定のRGBA
 	desc.SampleDesc.Count = 1; // 1ピクセルにつき1回サンプリング
+	// デプスステンシルステートの設定
+	desc.DepthStencilState.DepthEnable = true;
+	desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 }
 void Pipeline::CreatePipelineState(ID3D12Device* device)
 {

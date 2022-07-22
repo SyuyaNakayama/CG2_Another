@@ -48,10 +48,7 @@ public:
 
 	Pipeline();
 	void SetShader(ShaderBlob vs, ShaderBlob ps);
-	void SetSampleMask();
-	void SetRasterizer();
 	void SetInputLayout(D3D12_INPUT_ELEMENT_DESC* inputLayout, UINT layoutNum);
-	void SetPrimitiveTopology();
 	void SetOthers();
 	void CreatePipelineState(ID3D12Device* device);
 };

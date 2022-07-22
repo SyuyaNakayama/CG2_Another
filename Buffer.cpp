@@ -106,7 +106,7 @@ TextureBuf::TextureBuf()
 	scratchImg = {};
 	mipChain = {};
 
-	LoadFromWICFile(L"Resources/Map.png", WIC_FLAGS_NONE, &metadata, scratchImg);
+	LoadFromWICFile(L"Resources/mario.jpg", WIC_FLAGS_NONE, &metadata, scratchImg);
 
 	HRESULT result = GenerateMipMaps(scratchImg.GetImages(), scratchImg.GetImageCount(),
 		scratchImg.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain);

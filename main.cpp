@@ -20,9 +20,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma region DirectX初期化処理
 #ifdef _DEBUG
 //デバッグレイヤーをオンに
-	ID3D12Debug* debugController;
+	ID3D12Debug1* debugController;
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
 		debugController->EnableDebugLayer();
+		debugController->SetEnableGPUBasedValidation(TRUE);
 	}
 #endif
 	ID3D12Device* device = nullptr;
@@ -81,7 +82,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// ビュー変換行列
 	XMMATRIX matView;
-	XMFLOAT3 eye(0, 100, -100), target(0, 0, 0), up(0, 1, 0);
+	XMFLOAT3 eye(0, 0, -100), target(0, 0, 0), up(0, 1, 0);
 	matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 
 	// 射影変換行列 
@@ -98,10 +99,36 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// 頂点データ
 	VertexBuf::Vertex vertices[] =
 	{
-		{{ -50.0f,-50.0f,0.0f },{0.0f,1.0f}}, // 左下
-		{{ -50.0f, 50.0f,0.0f },{0.0f,0.0f}}, // 左上
-		{{  50.0f,-50.0f,0.0f },{1.0f,1.0f}}, // 右下
-		{{  50.0f, 50.0f,0.0f },{1.0f,0.0f}}, // 右上
+		// 前
+		{{ -5.0f,-5.0f,-5.0f },{0.0f,1.0f}},
+		{{ -5.0f, 5.0f,-5.0f },{0.0f,0.0f}},
+		{{  5.0f,-5.0f,-5.0f },{1.0f,1.0f}},
+		{{  5.0f, 5.0f,-5.0f },{1.0f,0.0f}},
+		// 後
+		{{ -5.0f,-5.0f, 5.0f },{0.0f,1.0f}},
+		{{ -5.0f, 5.0f, 5.0f },{0.0f,0.0f}},
+		{{  5.0f,-5.0f, 5.0f },{1.0f,1.0f}},
+		{{  5.0f, 5.0f, 5.0f },{1.0f,0.0f}},
+		// 左
+		{{ -5.0f,-5.0f,-5.0f },{0.0f,1.0f}},
+		{{ -5.0f,-5.0f, 5.0f },{0.0f,0.0f}},
+		{{ -5.0f, 5.0f,-5.0f },{1.0f,1.0f}},
+		{{ -5.0f, 5.0f, 5.0f },{1.0f,0.0f}},
+		// 右
+		{{  5.0f,-5.0f,-5.0f },{0.0f,1.0f}},
+		{{  5.0f,-5.0f, 5.0f },{0.0f,0.0f}},
+		{{  5.0f, 5.0f,-5.0f },{1.0f,1.0f}},
+		{{  5.0f, 5.0f, 5.0f },{1.0f,0.0f}},
+		// 下
+		{{-5.0f,-5.0f,-5.0f },{0.0f,1.0f}},
+		{{-5.0f,-5.0f, 5.0f },{0.0f,0.0f}},
+		{{ 5.0f,-5.0f,-5.0f },{1.0f,1.0f}},
+		{{ 5.0f,-5.0f, 5.0f },{1.0f,0.0f}},
+		// 上
+		{{-5.0f, 5.0f,-5.0f },{0.0f,1.0f}},
+		{{-5.0f, 5.0f, 5.0f },{0.0f,0.0f}},
+		{{ 5.0f, 5.0f,-5.0f },{1.0f,1.0f}},
+		{{ 5.0f, 5.0f, 5.0f },{1.0f,0.0f}},
 	};
 
 	VertexBuf vertex(static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices)));
@@ -115,8 +142,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// インデックスデータ
 	uint16_t indices[] =
 	{
+		// 前
 		0,1,2,
 		1,2,3,
+		// 後
+		4,5,6,
+		5,6,7,
+		// 左
+		8, 9,10,
+		9,10,11,
+		// 右
+		12,13,14,
+		13,14,15,
+		// 下
+		16,17,18,
+		17,18,19,
+		// 上
+		20,21,22,
+		21,22,23
 	};
 
 	IndexBuf index(static_cast<UINT>(sizeof(uint16_t) * _countof(indices)));
@@ -161,15 +204,48 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	};
 #pragma endregion
 #pragma region パイプライン
+	// 深度バッファ
+	D3D12_RESOURCE_DESC depthResourceDesc{};
+	depthResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthResourceDesc.Width = WIN_SIZE.width;
+	depthResourceDesc.Height = WIN_SIZE.height;
+	depthResourceDesc.DepthOrArraySize = 1;
+	depthResourceDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	depthResourceDesc.SampleDesc.Count = 1;
+	depthResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_HEAP_PROPERTIES depthHeapProp{};
+	depthHeapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	D3D12_CLEAR_VALUE depthClearValue{};
+	depthClearValue.DepthStencil.Depth = 1.0f;
+	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+
+	ID3D12Resource* depthBuff = nullptr;
+	device->CreateCommittedResource(
+		&depthHeapProp, D3D12_HEAP_FLAG_NONE,
+		&depthResourceDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthClearValue, IID_PPV_ARGS(&depthBuff));
+
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc{};
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	ID3D12DescriptorHeap* dsvHeap = nullptr;
+	device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvHeap));
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	device->CreateDepthStencilView(
+		depthBuff, &dsvDesc, dsvHeap->GetCPUDescriptorHandleForHeapStart());
+
 	// グラフィックスパイプライン設定
 	Pipeline pipeline{};
 
 	pipeline.SetShader(vs, ps); // シェーダーの設定
-	pipeline.SetSampleMask(); // サンプルマスクの設定
-	pipeline.SetRasterizer(); // ラスタライザの設定
 	pipeline.SetInputLayout(inputLayout, _countof(inputLayout)); // 頂点レイアウトの設定
-	pipeline.SetPrimitiveTopology(); // 図形の形状設定
-	pipeline.SetOthers(); // その他の設定
+	pipeline.SetOthers(); 
 
 	// レンダーターゲットのブレンド設定
 	Blend blend(&pipeline.desc.BlendState.RenderTarget[0]);
@@ -248,10 +324,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		// 2.描画先の変更
 		swapChain.GetHandle();
-		command.list->OMSetRenderTargets(1, &swapChain.rtvHandle, false, nullptr);
+		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvHeap->GetCPUDescriptorHandleForHeapStart();
+		command.list->OMSetRenderTargets(1, &swapChain.rtvHandle, false, &dsvHandle);
 
 		// 3.画面クリアRGBA
 		command.list->ClearRenderTargetView(swapChain.rtvHandle, clearColor, 0, nullptr);
+		command.list->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 #pragma region 描画コマンド
 		// ビューポート設定コマンド
 		viewport.Width = WIN_SIZE.width;
