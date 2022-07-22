@@ -131,14 +131,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		{{ 5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 	};
 
-	VertexBuf vertex(static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices)));
-	vertex.SetResource(vertex.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
-	vertex.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD);
-	vertex.CreateBuffer(device);
-	vertex.Mapping(vertices, _countof(vertices));
-	vertex.CreateView(); // 頂点バッファビューの作成
-#pragma endregion
-#pragma region インデックスバッファ
 	// インデックスデータ
 	uint16_t indices[] =
 	{
@@ -155,12 +147,40 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		13,12,14,
 		13,14,15,
 		// 下
-		16,17,18,
+		17,16,18,
 		17,18,19,
 		// 上
 		20,21,22,
-		21,22,23
+		22,21,23
 	};
+
+	for (int i = 0; i < _countof(vertices) / 2; i++)
+	{
+		std::vector<unsigned short>index;
+		std::vector<XMVECTOR>p, v;
+
+		for (int j = 0; j < 3; j++)
+		{
+			index.push_back(indices[i * 3 + j]);
+			p.push_back(XMLoadFloat3(&vertices[index[j]].pos));
+			if (j != 0) { v.push_back(XMVectorSubtract(p[j], p[0])); }
+		}
+
+		XMVECTOR normal = XMVector3Cross(v[0], v[1]);
+		normal = XMVector3Normalize(normal);
+
+		for (int j = 0; j < 3; j++) { XMStoreFloat3(&vertices[index[j]].normal, normal); }
+	}
+
+	VertexBuf vertex(static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices)));
+	vertex.SetResource(vertex.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
+	vertex.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD);
+	vertex.CreateBuffer(device);
+	vertex.Mapping(vertices, _countof(vertices));
+	vertex.CreateView(); // 頂点バッファビューの作成
+#pragma endregion
+#pragma region インデックスバッファ
+
 
 	IndexBuf index(static_cast<UINT>(sizeof(uint16_t) * _countof(indices)));
 	index.SetResource(index.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
@@ -250,7 +270,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	pipeline.SetShader(vs, ps); // シェーダーの設定
 	pipeline.SetInputLayout(inputLayout, _countof(inputLayout)); // 頂点レイアウトの設定
-	pipeline.SetOthers(); 
+	pipeline.SetOthers();
 
 	// レンダーターゲットのブレンド設定
 	Blend blend(&pipeline.desc.BlendState.RenderTarget[0]);
@@ -317,6 +337,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			angle += (keyboard.isInput(DIK_D) - keyboard.isInput(DIK_A)) * XMConvertToRadians(2.0f);
 
 			eye.x = -100 * sinf(angle);
+			eye.y = -100 * sinf(angle);
 			eye.z = -100 * cosf(angle);
 
 			matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
