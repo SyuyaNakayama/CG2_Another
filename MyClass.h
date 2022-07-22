@@ -188,3 +188,70 @@ public:
 	void CreateDescriptorHeap(ID3D12Device* device);
 	void GetDescriptorHandleForHeapStart(Type type);
 };
+
+class ViewProjection
+{
+private:
+	XMMATRIX view, projection;
+
+public:
+	XMFLOAT3 eye, target, up;
+
+	ViewProjection(XMFLOAT3 eye, XMFLOAT3 target = {}, XMFLOAT3 up = { 0,1,0 })
+	{
+		view = XMMatrixIdentity();
+		projection = XMMatrixIdentity();
+		this->eye = eye;
+		this->target = target;
+		this->up = up;
+	}
+	void CreateViewMatrix()
+	{
+		view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+	}
+	void CreateProjectionMatrix(Int2 windowSize)
+	{
+		projection = XMMatrixPerspectiveFovLH(
+			XMConvertToRadians(45.0f), (float)windowSize.width / windowSize.height, 0.1f, 1000.0f);
+	}
+	XMMATRIX GetViewMatrix() { return view; }
+	XMMATRIX GetProjectionMatrix() { return projection; }
+};
+
+class WorldTransform
+{
+private:
+	XMMATRIX matWorld, matScale, matRot, matTrans;
+
+	void InitializeMatrix()
+	{
+		matWorld = XMMatrixIdentity();
+		matScale = XMMatrixIdentity();
+		matRot = XMMatrixIdentity();
+		matTrans = XMMatrixIdentity();
+	}
+public:
+	XMFLOAT3 scale, rot, trans;
+
+	WorldTransform()
+	{
+		InitializeMatrix();
+		scale = { 1.0f,1.0f,1.0f };
+		rot = {};
+		trans = {};
+	}
+	WorldTransform(XMFLOAT3 scale, XMFLOAT3 rot, XMFLOAT3 trans)
+	{
+		InitializeMatrix();
+		this->scale = scale;
+		this->rot = rot;
+		this->trans = trans;
+	}
+	void UpdateMatrix()
+	{
+		matScale = XMMatrixScaling(scale.x, scale.y, scale.z);
+		matRot = XMMatrixRotationY(rot.y) * XMMatrixRotationY(rot.x) * XMMatrixRotationY(rot.z);
+		matTrans = XMMatrixTranslation(trans.x, trans.y, trans.z);
+		matWorld = matScale * matRot * matTrans;
+	}
+};

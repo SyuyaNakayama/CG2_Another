@@ -68,7 +68,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma endregion
 #pragma region 描画初期化処理
 #pragma region 定数バッファ
-	ConstBuf cb[2] = { ConstBuf::Type::Material,ConstBuf::Type::Transform };
+	ConstBuf cb[] = { ConstBuf::Type::Material,ConstBuf::Type::Transform,ConstBuf::Type::Transform };
 	for (size_t i = 0; i < _countof(cb); i++)
 	{
 		cb[i].SetResource(cb[i].size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
@@ -77,8 +77,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		cb[i].Mapping(); // 定数バッファのマッピング
 	}
 
-	cb[ConstBuf::Type::Transform].mapTransform->mat = XMMatrixOrthographicOffCenterLH(
-		0, WIN_SIZE.width, WIN_SIZE.height, 0, 0, 1.0f);
+	XMMATRIX matWorld[2], matScale[2], matRot[2], matTrans[2];
+	for (size_t i = 0; i < 2; i++)
+	{
+		matWorld[i] = XMMatrixIdentity();
+		matScale[i] = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+		matRot[i] = XMMatrixRotationY(XM_PI / 4.0f);
+		matTrans[i] = XMMatrixTranslation(-20, 0, 0);
+	}
 
 	// ビュー変換行列
 	XMMATRIX matView;
@@ -89,11 +95,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	XMMATRIX matProjection = XMMatrixPerspectiveFovLH(
 		XMConvertToRadians(45.0f), (float)WIN_SIZE.width / WIN_SIZE.height, 0.1f, 1000.0f);
 
-	// 行列の合成
-	cb[ConstBuf::Type::Transform].mapTransform->mat = matView * matProjection;
+	matRot[0] = XMMatrixIdentity();
+	matTrans[0] = XMMatrixTranslation(0, 0, 0);
+
+	for (size_t i = 0; i < 2; i++)
+	{
+		matWorld[i] = matScale[i] * matRot[i] * matTrans[i];
+		// 行列の合成
+		cb[i + 1].mapTransform->mat = matWorld[i] * matView * matProjection;
+	}
 
 	// 値を書き込むと自動的に転送される
-	cb[ConstBuf::Type::Material].mapMaterial->color = XMFLOAT4(1, 1, 1, 1);
+	cb[0].mapMaterial->color = XMFLOAT4(1, 1, 1, 1);
 #pragma endregion
 #pragma region 頂点バッファ
 	// 頂点データ
@@ -180,8 +193,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	vertex.CreateView(); // 頂点バッファビューの作成
 #pragma endregion
 #pragma region インデックスバッファ
-
-
 	IndexBuf index(static_cast<UINT>(sizeof(uint16_t) * _countof(indices)));
 	index.SetResource(index.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
 	index.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD);
@@ -337,11 +348,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			angle += (keyboard.isInput(DIK_D) - keyboard.isInput(DIK_A)) * XMConvertToRadians(2.0f);
 
 			eye.x = -100 * sinf(angle);
-			eye.y = -100 * sinf(angle);
 			eye.z = -100 * cosf(angle);
 
 			matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
-			cb[ConstBuf::Type::Transform].mapTransform->mat = matView * matProjection;
+			cb[1].mapTransform->mat = matWorld[0] * matView * matProjection;
 		}
 #pragma endregion
 		// 1.リソースバリアで書き込み可能に変更
@@ -381,14 +391,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		command.list->IASetIndexBuffer(&index.view); // 頂点バッファビューの設定コマンド
 		command.list->RSSetViewports(1, &viewport); // ビューポート設定コマンドを、コマンドリストに積む
 		// 定数バッファビューの設定コマンド
-		command.list->SetGraphicsRootConstantBufferView(0, cb[ConstBuf::Type::Material].buff->GetGPUVirtualAddress());
-		command.list->SetGraphicsRootConstantBufferView(2, cb[ConstBuf::Type::Transform].buff->GetGPUVirtualAddress());
+		command.list->SetGraphicsRootConstantBufferView(0, cb[0].buff->GetGPUVirtualAddress());
 		command.list->SetDescriptorHeaps(1, &srv.heap);
 		srv.GetDescriptorHandleForHeapStart(ShaderResourceView::Type::GPU);
 		command.list->SetGraphicsRootDescriptorTable(1, srv.gpuHandle);
+		for (size_t i = 1; i < 3; i++)
+		{
+			command.list->SetGraphicsRootConstantBufferView(2, cb[i].buff->GetGPUVirtualAddress());
+			// 描画コマンド
+			command.list->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0); // 全ての頂点を使って描画
+		}
 
-		// 描画コマンド
-		command.list->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0); // 全ての頂点を使って描画
 #pragma endregion
 #pragma endregion
 #pragma region 画面入れ替え
