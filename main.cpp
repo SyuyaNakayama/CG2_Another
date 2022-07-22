@@ -77,32 +77,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		cb[i].Mapping(); // 定数バッファのマッピング
 	}
 
-	XMMATRIX matWorld[2], matScale[2], matRot[2], matTrans[2];
-	for (size_t i = 0; i < 2; i++)
-	{
-		matWorld[i] = XMMatrixIdentity();
-		matScale[i] = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-		matRot[i] = XMMatrixRotationY(XM_PI / 4.0f);
-		matTrans[i] = XMMatrixTranslation(-20, 0, 0);
-	}
+	std::vector<WorldTransform> worldTransform = 
+	{ 2,
+		{
+			{1.0f,1.0f,1.0f},
+			{0,XM_PI / 4.0f,0},
+			{-20,0,0}
+		}
+	};
 
-	// ビュー変換行列
-	XMMATRIX matView;
-	XMFLOAT3 eye(0, 0, -100), target(0, 0, 0), up(0, 1, 0);
-	matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+	worldTransform[0].rot.y = 0;
+	worldTransform[0].trans.x = 0;
 
-	// 射影変換行列 
-	XMMATRIX matProjection = XMMatrixPerspectiveFovLH(
-		XMConvertToRadians(45.0f), (float)WIN_SIZE.width / WIN_SIZE.height, 0.1f, 1000.0f);
-
-	matRot[0] = XMMatrixIdentity();
-	matTrans[0] = XMMatrixTranslation(0, 0, 0);
+	ViewProjection viewProjection = { { 0,0,-100 } };
+	viewProjection.CreateViewMatrix();
+	viewProjection.CreateProjectionMatrix(WIN_SIZE);
 
 	for (size_t i = 0; i < 2; i++)
 	{
-		matWorld[i] = matScale[i] * matRot[i] * matTrans[i];
+		worldTransform[i].UpdateMatrix();
 		// 行列の合成
-		cb[i + 1].mapTransform->mat = matWorld[i] * matView * matProjection;
+		cb[i + 1].mapTransform->mat = worldTransform[i].GetWorldMatrix() * 
+			viewProjection.GetViewProjectionMatrix();
 	}
 
 	// 値を書き込むと自動的に転送される
@@ -346,12 +342,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		if (keyboard.isInput(DIK_D) || keyboard.isInput(DIK_A))
 		{
 			angle += (keyboard.isInput(DIK_D) - keyboard.isInput(DIK_A)) * XMConvertToRadians(2.0f);
-
-			eye.x = -100 * sinf(angle);
-			eye.z = -100 * cosf(angle);
-
-			matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
-			cb[1].mapTransform->mat = matWorld[0] * matView * matProjection;
+		
+			viewProjection.eye.x = -100 * sinf(angle);
+			viewProjection.eye.z = -100 * cosf(angle);
+		
+			viewProjection.CreateViewMatrix();
+			for (size_t i = 0; i < 2; i++)
+			{
+				// 行列の合成
+				cb[i + 1].mapTransform->mat = worldTransform[i].GetWorldMatrix() *
+					viewProjection.GetViewProjectionMatrix();
+			}
 		}
 #pragma endregion
 		// 1.リソースバリアで書き込み可能に変更
