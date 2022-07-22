@@ -97,7 +97,7 @@ void Pipeline::SetOthers()
 	// サンプルマスクの設定
 	desc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK; // 標準設定
 	// ラスタライザの設定
-	desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
+	desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK; // 背面をカリング
 	desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
 	desc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
 	// 図形の形状設定

@@ -50,7 +50,15 @@ public:
 	struct Vertex
 	{
 		XMFLOAT3 pos;
+		XMFLOAT3 normal;
 		XMFLOAT2 uv;
+
+		Vertex(XMFLOAT3 pos, XMFLOAT2 uv)
+		{
+			this->pos = pos;
+			normal = {};
+			this->uv = uv;
+		}
 	};
 private:
 	Vertex* map;

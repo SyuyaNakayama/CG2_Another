@@ -100,35 +100,35 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	VertexBuf::Vertex vertices[] =
 	{
 		// 前
-		{{ -5.0f,-5.0f,-5.0f },{0.0f,1.0f}},
-		{{ -5.0f, 5.0f,-5.0f },{0.0f,0.0f}},
-		{{  5.0f,-5.0f,-5.0f },{1.0f,1.0f}},
-		{{  5.0f, 5.0f,-5.0f },{1.0f,0.0f}},
+		{{-5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
+		{{-5.0f, 5.0f,-5.0f},{0.0f,0.0f}},
+		{{ 5.0f,-5.0f,-5.0f},{1.0f,1.0f}},
+		{{ 5.0f, 5.0f,-5.0f},{1.0f,0.0f}},
 		// 後
-		{{ -5.0f,-5.0f, 5.0f },{0.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f },{0.0f,0.0f}},
-		{{  5.0f,-5.0f, 5.0f },{1.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f },{1.0f,0.0f}},
+		{{-5.0f,-5.0f, 5.0f},{0.0f,1.0f}},
+		{{-5.0f, 5.0f, 5.0f},{0.0f,0.0f}},
+		{{ 5.0f,-5.0f, 5.0f},{1.0f,1.0f}},
+		{{ 5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 		// 左
-		{{ -5.0f,-5.0f,-5.0f },{0.0f,1.0f}},
-		{{ -5.0f,-5.0f, 5.0f },{0.0f,0.0f}},
-		{{ -5.0f, 5.0f,-5.0f },{1.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f },{1.0f,0.0f}},
+		{{-5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
+		{{-5.0f,-5.0f, 5.0f},{0.0f,0.0f}},
+		{{-5.0f, 5.0f,-5.0f},{1.0f,1.0f}},
+		{{-5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 		// 右
-		{{  5.0f,-5.0f,-5.0f },{0.0f,1.0f}},
-		{{  5.0f,-5.0f, 5.0f },{0.0f,0.0f}},
-		{{  5.0f, 5.0f,-5.0f },{1.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f },{1.0f,0.0f}},
+		{{ 5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
+		{{ 5.0f,-5.0f, 5.0f},{0.0f,0.0f}},
+		{{ 5.0f, 5.0f,-5.0f},{1.0f,1.0f}},
+		{{ 5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 		// 下
-		{{-5.0f,-5.0f,-5.0f },{0.0f,1.0f}},
-		{{-5.0f,-5.0f, 5.0f },{0.0f,0.0f}},
-		{{ 5.0f,-5.0f,-5.0f },{1.0f,1.0f}},
-		{{ 5.0f,-5.0f, 5.0f },{1.0f,0.0f}},
+		{{-5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
+		{{-5.0f,-5.0f, 5.0f},{0.0f,0.0f}},
+		{{ 5.0f,-5.0f,-5.0f},{1.0f,1.0f}},
+		{{ 5.0f,-5.0f, 5.0f},{1.0f,0.0f}},
 		// 上
-		{{-5.0f, 5.0f,-5.0f },{0.0f,1.0f}},
-		{{-5.0f, 5.0f, 5.0f },{0.0f,0.0f}},
-		{{ 5.0f, 5.0f,-5.0f },{1.0f,1.0f}},
-		{{ 5.0f, 5.0f, 5.0f },{1.0f,0.0f}},
+		{{-5.0f, 5.0f,-5.0f},{0.0f,1.0f}},
+		{{-5.0f, 5.0f, 5.0f},{0.0f,0.0f}},
+		{{ 5.0f, 5.0f,-5.0f},{1.0f,1.0f}},
+		{{ 5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 	};
 
 	VertexBuf vertex(static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices)));
@@ -144,15 +144,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		// 前
 		0,1,2,
-		1,2,3,
+		2,1,3,
 		// 後
-		4,5,6,
+		5,4,6,
 		5,6,7,
 		// 左
 		8, 9,10,
-		9,10,11,
+		10,9,11,
 		// 右
-		12,13,14,
+		13,12,14,
 		13,14,15,
 		// 下
 		16,17,18,
@@ -193,6 +193,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 		{	// xyz座標
 			"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+			D3D12_APPEND_ALIGNED_ELEMENT,
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+		},
+		{	// 法線ベクトル
+			"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,
 			D3D12_APPEND_ALIGNED_ELEMENT,
 			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
 		},
@@ -309,7 +314,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 		if (keyboard.isInput(DIK_D) || keyboard.isInput(DIK_A))
 		{
-			angle += (keyboard.isInput(DIK_D) - keyboard.isInput(DIK_A)) * XMConvertToRadians(1.0f);
+			angle += (keyboard.isInput(DIK_D) - keyboard.isInput(DIK_A)) * XMConvertToRadians(2.0f);
 
 			eye.x = -100 * sinf(angle);
 			eye.z = -100 * cosf(angle);
