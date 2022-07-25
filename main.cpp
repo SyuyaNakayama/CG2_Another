@@ -19,15 +19,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	MSG msg{}; // メッセージ
 #pragma endregion 
 #pragma region DirectX初期化処理
+	ID3D12Device* device = nullptr;
+
 #ifdef _DEBUG
-//デバッグレイヤーをオンに
+	//デバッグレイヤーをオンに
 	ID3D12Debug1* debugController;
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
 		debugController->EnableDebugLayer();
 		debugController->SetEnableGPUBasedValidation(TRUE);
 	}
+
+	ID3D12InfoQueue* infoQueue;
+	if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
+		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
+		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
+		infoQueue->Release();
+	}
 #endif
-	ID3D12Device* device = nullptr;
 
 	// 対応レベルの配列
 	D3D_FEATURE_LEVEL levels[] =
