@@ -1,4 +1,9 @@
 #include "Buffer.h"
+void Buffer::Init()
+{
+	resDesc = {};
+	buff = nullptr;
+}
 void Buffer::SetResource(size_t width, size_t height, D3D12_RESOURCE_DIMENSION Dimension)
 {
 	resDesc.Dimension = Dimension;
@@ -9,19 +14,21 @@ void Buffer::SetResource(size_t width, size_t height, D3D12_RESOURCE_DIMENSION D
 	resDesc.SampleDesc.Count = 1;
 	resDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 }
+void Buffer::SetHeapProp(D3D12_HEAP_TYPE Type, D3D12_CPU_PAGE_PROPERTY CPUPageProperty,
+	D3D12_MEMORY_POOL MemoryPoolPreference)
+{
+	heapProp = {};
+	heapProp.Type = Type;
+	heapProp.CPUPageProperty = CPUPageProperty;
+	heapProp.MemoryPoolPreference = MemoryPoolPreference;
+}
 void Buffer::CreateBuffer(ID3D12Device* device)
 {
-	assert(SUCCEEDED(
-		device->CreateCommittedResource(
-			&heapProp, D3D12_HEAP_FLAG_NONE,
-			&resDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr, IID_PPV_ARGS(&buff))));
-}
-void Buffer::Init()
-{
-	resDesc = {};
-	buff = nullptr;
+	device->CreateCommittedResource(
+		&heapProp, D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr, IID_PPV_ARGS(&buff));
 }
 
 ConstBuf::ConstBuf(Type type)

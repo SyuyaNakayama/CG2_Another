@@ -9,6 +9,7 @@
 #include <d3dcompiler.h>
 #include <dinput.h>
 #include <DirectXTex.h>
+#include "Buffer.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -205,15 +206,22 @@ public:
 
 class WorldTransform
 {
-private:
+protected:
 	XMMATRIX matWorld, matScale, matRot, matTrans;
 
 	void InitializeMatrix();
 public:
 	XMFLOAT3 scale, rot, trans;
+	WorldTransform* parent = nullptr;
 
 	WorldTransform();
 	WorldTransform(XMFLOAT3 scale, XMFLOAT3 rot, XMFLOAT3 trans);
 	void UpdateMatrix();
-	XMMATRIX GetWorldMatrix() { return matWorld; }
+};
+
+class Object3d :public ConstBuf, public WorldTransform
+{
+public:
+	Object3d(ID3D12Device* device, Type type = Transform);
+	void TransferMatrix(ViewProjection viewProjection);
 };

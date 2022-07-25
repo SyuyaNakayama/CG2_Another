@@ -3,6 +3,7 @@
 #include "Input.h"
 
 using namespace DirectX;
+using namespace std;
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -63,46 +64,43 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	// DirectInputの初期化&キーボードデバイスの生成
 	Keyboard keyboard;
 	keyboard.GetInstance(wAPI.w);
-	keyboard.SetDataStdFormat(); // 入力データ形式を標準設定でセット
-	keyboard.SetCooperativeLevel(wAPI.hwnd); // 排他制御レベルのセット
+	keyboard.Set(wAPI.hwnd);
 #pragma endregion
 #pragma region 描画初期化処理
 #pragma region 定数バッファ
-	ConstBuf cb[] = { ConstBuf::Type::Material,ConstBuf::Type::Transform,ConstBuf::Type::Transform };
-	for (size_t i = 0; i < _countof(cb); i++)
+	ConstBuf cb = ConstBuf::Type::Material;
+	cb.SetResource(cb.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
+	cb.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD); // ヒープ設定
+	cb.CreateBuffer(device);
+	cb.Mapping(); // 定数バッファのマッピング
+
+	// 値を書き込むと自動的に転送される
+	cb.mapMaterial->color = XMFLOAT4(1, 1, 1, 1);
+
+	const size_t OBJ_COUNT = 50;
+	vector<Object3d> object3ds;
+	for (size_t i = 0; i < OBJ_COUNT; i++)
 	{
-		cb[i].SetResource(cb[i].size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
-		cb[i].SetHeapProp(D3D12_HEAP_TYPE_UPLOAD); // ヒープ設定
-		cb[i].CreateBuffer(device);
-		cb[i].Mapping(); // 定数バッファのマッピング
+		object3ds.push_back({ device });
 	}
-
-	std::vector<WorldTransform> worldTransform = 
-	{ 2,
-		{
-			{1.0f,1.0f,1.0f},
-			{0,XM_PI / 4.0f,0},
-			{-20,0,0}
-		}
-	};
-
-	worldTransform[0].rot.y = 0;
-	worldTransform[0].trans.x = 0;
 
 	ViewProjection viewProjection = { { 0,0,-100 } };
 	viewProjection.CreateViewMatrix();
 	viewProjection.CreateProjectionMatrix(WIN_SIZE);
 
-	for (size_t i = 0; i < 2; i++)
+	for (size_t i = 0; i < OBJ_COUNT; i++)
 	{
-		worldTransform[i].UpdateMatrix();
-		// 行列の合成
-		cb[i + 1].mapTransform->mat = worldTransform[i].GetWorldMatrix() * 
-			viewProjection.GetViewProjectionMatrix();
+		if (i > 0)
+		{
+			object3ds[i].parent = &object3ds[i - 1];
+			object3ds[i].scale = { 0.9f,0.9f,0.9f };
+			object3ds[i].rot = { 0,0,XMConvertToRadians(30.0f) };
+			object3ds[i].trans = { 0,0,-8.0f };
+		}
+		object3ds[i].UpdateMatrix();
+		object3ds[i].TransferMatrix(viewProjection);
 	}
 
-	// 値を書き込むと自動的に転送される
-	cb[0].mapMaterial->color = XMFLOAT4(1, 1, 1, 1);
 #pragma endregion
 #pragma region 頂点バッファ
 	// 頂点データ
@@ -339,20 +337,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// 全キーの入力状態を取得する
 		keyboard.GetDeviceState();
 
-		if (keyboard.isInput(DIK_D) || keyboard.isInput(DIK_A))
+		object3ds[0].trans.y += keyboard.Move(DIK_UP, DIK_DOWN, 1.0f);
+		object3ds[0].trans.x += keyboard.Move(DIK_RIGHT, DIK_LEFT, 1.0f);
+
+		if (keyboard.IsInput(DIK_D) || keyboard.IsInput(DIK_A))
 		{
-			angle += (keyboard.isInput(DIK_D) - keyboard.isInput(DIK_A)) * XMConvertToRadians(2.0f);
-		
+			angle += keyboard.Move(DIK_A, DIK_D, XMConvertToRadians(2.0f));
+
 			viewProjection.eye.x = -100 * sinf(angle);
 			viewProjection.eye.z = -100 * cosf(angle);
-		
+
 			viewProjection.CreateViewMatrix();
-			for (size_t i = 0; i < 2; i++)
-			{
-				// 行列の合成
-				cb[i + 1].mapTransform->mat = worldTransform[i].GetWorldMatrix() *
-					viewProjection.GetViewProjectionMatrix();
-			}
+		}
+
+		for (size_t i = 0; i < OBJ_COUNT; i++)
+		{
+			object3ds[i].UpdateMatrix();
+			object3ds[i].TransferMatrix(viewProjection);
 		}
 #pragma endregion
 		// 1.リソースバリアで書き込み可能に変更
@@ -392,17 +393,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		command.list->IASetIndexBuffer(&index.view); // 頂点バッファビューの設定コマンド
 		command.list->RSSetViewports(1, &viewport); // ビューポート設定コマンドを、コマンドリストに積む
 		// 定数バッファビューの設定コマンド
-		command.list->SetGraphicsRootConstantBufferView(0, cb[0].buff->GetGPUVirtualAddress());
+		command.list->SetGraphicsRootConstantBufferView(0, cb.buff->GetGPUVirtualAddress());
 		command.list->SetDescriptorHeaps(1, &srv.heap);
 		srv.GetDescriptorHandleForHeapStart(ShaderResourceView::Type::GPU);
 		command.list->SetGraphicsRootDescriptorTable(1, srv.gpuHandle);
-		for (size_t i = 1; i < 3; i++)
+
+		for (size_t i = 0; i < OBJ_COUNT; i++)
 		{
-			command.list->SetGraphicsRootConstantBufferView(2, cb[i].buff->GetGPUVirtualAddress());
+			command.list->SetGraphicsRootConstantBufferView(2, object3ds[i].buff->GetGPUVirtualAddress());
 			// 描画コマンド
 			command.list->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0); // 全ての頂点を使って描画
 		}
-
 #pragma endregion
 #pragma endregion
 #pragma region 画面入れ替え

@@ -19,10 +19,10 @@ public:
 	IDirectInputDevice8* device;
 
 	void GetInstance(WNDCLASSEX w);
-	void SetDataStdFormat();
-	void SetCooperativeLevel(HWND hwnd);
+	void Set(HWND hwnd);
 	void GetDeviceState();
 	void TransferOldkey();
-	bool isInput(const int KEY);
-	bool isTrigger(const int KEY);
+	bool IsInput(const int KEY);
+	bool IsTrigger(const int KEY);
+	float Move(const int KEY1, const int KEY2, const float spd);
 };
