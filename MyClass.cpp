@@ -235,11 +235,11 @@ SwapChain::SwapChain(ComPtr<ID3D12Device> device)
 	devicePtr = device;
 	sc = nullptr;
 }
-void SwapChain::Create(ComPtr<IDXGIFactory7> dxgiFactory, ID3D12CommandQueue* commandQueue, HWND hwnd)
+void SwapChain::Create(ComPtr<IDXGIFactory7> dxgiFactory, ComPtr<ID3D12CommandQueue> commandQueue, HWND hwnd)
 {
 	assert(SUCCEEDED(
 		dxgiFactory->CreateSwapChainForHwnd(
-			commandQueue, hwnd, &scDesc, nullptr, nullptr,
+			commandQueue.Get(), hwnd, &scDesc, nullptr, nullptr,
 			(IDXGISwapChain1**)&sc)));
 }
 void SwapChain::CreateRenderTargetView()
@@ -312,7 +312,7 @@ ResourceBarrier::ResourceBarrier()
 	desc = {};
 	desc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 }
-void ResourceBarrier::SetState(ID3D12GraphicsCommandList* commandList)
+void ResourceBarrier::SetState(ComPtr<ID3D12GraphicsCommandList> commandList)
 {
 	static int state = 0;
 	if (!(state++))
@@ -336,7 +336,6 @@ Command::Command(ComPtr<ID3D12Device> device)
 	queue = nullptr;
 	queueDesc = {};
 	devicePtr = device;
-	cLists = {};
 }
 void Command::CreateCommandAllocator()
 {
@@ -350,7 +349,7 @@ void Command::CreateCommandList()
 	assert(SUCCEEDED(
 		devicePtr->CreateCommandList(0,
 			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			allocator, nullptr,
+			allocator.Get(), nullptr,
 			IID_PPV_ARGS(&list))));
 }
 void Command::CreateCommandQueue()
@@ -361,11 +360,11 @@ void Command::CreateCommandQueue()
 void Command::Reset()
 {
 	assert(SUCCEEDED(allocator->Reset())); // キューをクリア
-	assert(SUCCEEDED(list->Reset(allocator, nullptr))); // 再びコマンドリストを貯める準備
+	assert(SUCCEEDED(list->Reset(allocator.Get(), nullptr))); // 再びコマンドリストを貯める準備
 }
 void Command::ExecuteCommandLists()
 {
-	cLists = list;
+	cLists = list.Get();
 	queue->ExecuteCommandLists(1, &cLists);
 }
 

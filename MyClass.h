@@ -108,7 +108,7 @@ public:
 	IDXGISwapChain4* sc;
 
 	SwapChain(ComPtr<ID3D12Device> device);
-	void Create(ComPtr<IDXGIFactory7>, ID3D12CommandQueue* commandQueue, HWND hwnd);
+	void Create(ComPtr<IDXGIFactory7>, ComPtr<ID3D12CommandQueue> commandQueue, HWND hwnd);
 	void CreateRenderTargetView();
 	void Flip() { assert(SUCCEEDED(sc->Present(1, 0))); }
 	void CreateDescriptorHeap();
@@ -139,7 +139,7 @@ public:
 	D3D12_RESOURCE_BARRIER desc;
 
 	ResourceBarrier();
-	void SetState(ID3D12GraphicsCommandList* commandList);
+	void SetState(ComPtr<ID3D12GraphicsCommandList> commandList);
 };
 
 class Command
@@ -147,11 +147,11 @@ class Command
 private:
 	ComPtr<ID3D12Device> devicePtr;
 	D3D12_COMMAND_QUEUE_DESC queueDesc;
-	ID3D12CommandAllocator* allocator;
+	ComPtr<ID3D12CommandAllocator> allocator;
 	ID3D12CommandList* cLists;
 public:
-	ID3D12GraphicsCommandList* list;
-	ID3D12CommandQueue* queue;
+	ComPtr<ID3D12GraphicsCommandList> list;
+	ComPtr<ID3D12CommandQueue> queue;
 
 	Command(ComPtr<ID3D12Device> device);
 	void CreateCommandAllocator();
