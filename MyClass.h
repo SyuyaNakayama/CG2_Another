@@ -45,7 +45,7 @@ class Pipeline
 {
 public:
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
-	ID3D12PipelineState* state;
+	ComPtr<ID3D12PipelineState> state;
 
 	Pipeline();
 	void SetShader(ShaderBlob vs, ShaderBlob ps);
@@ -166,7 +166,7 @@ class Fence
 private:
 	HANDLE event;
 public:
-	ID3D12Fence* f;
+	ComPtr<ID3D12Fence> f;
 	UINT64 val;
 
 	Fence();

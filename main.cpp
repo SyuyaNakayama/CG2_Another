@@ -401,7 +401,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		// シザー矩形設定コマンドを、コマンドリストに積む
 		command.list->RSSetScissorRects(1, &scissorRect);
 		// パイプラインステートとルートシグネチャの設定コマンド
-		command.list->SetPipelineState(pipeline.state);
+		command.list->SetPipelineState(pipeline.state.Get());
 		command.list->SetGraphicsRootSignature(rootSignature.rs);
 		command.list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // プリミティブ形状の設定コマンド
 		command.list->IASetVertexBuffers(0, 1, &vertex.view); // 頂点バッファビューの設定コマンド
@@ -433,7 +433,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		swapChain.Flip();
 
 		// コマンドの実行完了を待つ
-		command.queue->Signal(fence.f, ++fence.val);
+		command.queue->Signal(fence.f.Get(), ++fence.val);
 		fence.Wait();
 
 		command.Reset();
