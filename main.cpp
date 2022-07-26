@@ -19,8 +19,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	MSG msg{}; // メッセージ
 #pragma endregion 
 #pragma region DirectX初期化処理
-	ID3D12Device* device = nullptr;
-
 #ifdef _DEBUG
 	//デバッグレイヤーをオンに
 	ID3D12Debug1* debugController;
@@ -28,14 +26,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		debugController->EnableDebugLayer();
 		debugController->SetEnableGPUBasedValidation(TRUE);
 	}
-
-	ID3D12InfoQueue* infoQueue;
-	if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
-		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
-		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
-		infoQueue->Release();
-	}
 #endif
+	ID3D12Device* device = nullptr;
 
 	// 対応レベルの配列
 	D3D_FEATURE_LEVEL levels[] =
@@ -49,7 +41,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	DirectXInit directX{};
 	directX.AdapterChoice();
 	device = directX.CreateDevice(levels, _countof(levels), device);
-
+#ifdef _DEBUG
+	ID3D12InfoQueue* infoQueue;
+	if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
+		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
+		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
+		infoQueue->Release();
+	}
+#endif
 	Command command(device);
 	// コマンドアロケータを生成
 	command.CreateCommandAllocator();
@@ -108,7 +107,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		object3ds[i].UpdateMatrix();
 		object3ds[i].TransferMatrix(viewProjection);
 	}
-
 #pragma endregion
 #pragma region 頂点バッファ
 	// 頂点データ
@@ -203,19 +201,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	index.CreateView(); // インデックスビューの作成
 #pragma endregion
 #pragma region テクスチャバッファ
-	TextureBuf texture{};
-	texture.SetResource();
-	texture.SetHeapProp(D3D12_HEAP_TYPE_CUSTOM, D3D12_CPU_PAGE_PROPERTY_WRITE_BACK, D3D12_MEMORY_POOL_L0);
-	texture.CreateBuffer(device);
-	texture.Transfer();
-
 	ShaderResourceView srv{};
 	srv.SetHeapDesc();
 	srv.CreateDescriptorHeap(device);
 	srv.GetDescriptorHandleForHeapStart(ShaderResourceView::Type::CPU);
+	TextureBuf texture[2] = { L"Resources/mario.jpg",L"Resources/reimu.png" };
+	UINT incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	texture.CreateView();
-	device->CreateShaderResourceView(texture.buff, &texture.view, srv.handle);
+	for (size_t i = 0; i < 2; i++)
+	{
+		texture[i].SetResource();
+		texture[i].SetHeapProp(D3D12_HEAP_TYPE_CUSTOM, D3D12_CPU_PAGE_PROPERTY_WRITE_BACK, D3D12_MEMORY_POOL_L0);
+		texture[i].CreateBuffer(device);
+		texture[i].Transfer();
+		texture[i].CreateView();
+		device->CreateShaderResourceView(texture[i].buff, &texture[i].view, srv.handle);
+		srv.handle.ptr += incrementSize;
+	}
 #pragma endregion
 #pragma region シェーダ
 	ID3DBlob* errorBlob = nullptr; // エラーオブジェクト
@@ -324,6 +326,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; // 青っぽい色
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};
+
+	bool texHandle = 0;
 #pragma endregion
 	// ゲームループ
 	while (1)
@@ -343,6 +347,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma region 更新処理
 		keyboard.device->Acquire(); // キーボード情報の取得開始
 		// 全キーの入力状態を取得する
+		keyboard.TransferOldkey();
 		keyboard.GetDeviceState();
 
 		object3ds[0].trans.y += keyboard.Move(DIK_UP, DIK_DOWN, 1.0f);
@@ -363,6 +368,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			object3ds[i].UpdateMatrix();
 			object3ds[i].TransferMatrix(viewProjection);
 		}
+
+		if (keyboard.IsTrigger(DIK_SPACE)) { texHandle = !texHandle; }
 #pragma endregion
 		// 1.リソースバリアで書き込み可能に変更
 		barrier.desc.Transition.pResource = swapChain.GetBackBuffersPtr(); // バックバッファを指定
@@ -404,6 +411,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		command.list->SetGraphicsRootConstantBufferView(0, cb.buff->GetGPUVirtualAddress());
 		command.list->SetDescriptorHeaps(1, &srv.heap);
 		srv.GetDescriptorHandleForHeapStart(ShaderResourceView::Type::GPU);
+		srv.gpuHandle.ptr += incrementSize * texHandle;
 		command.list->SetGraphicsRootDescriptorTable(1, srv.gpuHandle);
 
 		for (size_t i = 0; i < OBJ_COUNT; i++)

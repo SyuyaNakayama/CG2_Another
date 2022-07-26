@@ -105,7 +105,7 @@ void IndexBuf::CreateView()
 	view.SizeInBytes = size;
 }
 
-TextureBuf::TextureBuf()
+TextureBuf::TextureBuf(const wchar_t* texName)
 {
 	Init();
 	view = {};
@@ -113,7 +113,7 @@ TextureBuf::TextureBuf()
 	scratchImg = {};
 	mipChain = {};
 
-	LoadFromWICFile(L"Resources/mario.jpg", WIC_FLAGS_NONE, &metadata, scratchImg);
+	LoadFromWICFile(texName, WIC_FLAGS_NONE, &metadata, scratchImg);
 
 	HRESULT result = GenerateMipMaps(scratchImg.GetImages(), scratchImg.GetImageCount(),
 		scratchImg.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain);

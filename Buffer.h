@@ -86,7 +86,7 @@ class TextureBuf :public Buffer
 public:
 	D3D12_SHADER_RESOURCE_VIEW_DESC view;
 
-	TextureBuf();
+	TextureBuf(const wchar_t* texName);
 	void SetResource();
 	void CreateMipMap();
 	void Transfer();
