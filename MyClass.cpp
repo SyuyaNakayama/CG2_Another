@@ -112,7 +112,7 @@ void Pipeline::SetOthers()
 	desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 	desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 }
-void Pipeline::CreatePipelineState(ID3D12Device* device)
+void Pipeline::CreatePipelineState(ComPtr<ID3D12Device> device)
 {
 	assert(SUCCEEDED(device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&state))));
 }
@@ -148,7 +148,7 @@ void RootSignature::SetRootSignature(D3D12_STATIC_SAMPLER_DESC samplerDesc)
 	desc.pStaticSamplers = &samplerDesc;
 	desc.NumStaticSamplers = 1;
 }
-void RootSignature::SerializeRootSignature(ID3D12Device* device, ID3DBlob* errorBlob)
+void RootSignature::SerializeRootSignature(ComPtr<ID3D12Device> device, ID3DBlob* errorBlob)
 {
 	HRESULT result = D3D12SerializeRootSignature(&desc,
 		D3D_ROOT_SIGNATURE_VERSION_1_0, &blob, &errorBlob);
@@ -190,7 +190,7 @@ void DirectXInit::AdapterChoice()
 		}
 	}
 }
-ID3D12Device* DirectXInit::CreateDevice(D3D_FEATURE_LEVEL* levels, size_t levelsNum, ID3D12Device* device)
+ComPtr<ID3D12Device> DirectXInit::CreateDevice(D3D_FEATURE_LEVEL* levels, size_t levelsNum, ComPtr<ID3D12Device> device)
 {
 	HRESULT result;
 
@@ -221,7 +221,7 @@ void RenderTargetView::GetHandle()
 	rtvHandle.ptr += bbIndex * devicePtr->GetDescriptorHandleIncrementSize(rtvHeapDesc.Type);
 }
 
-SwapChain::SwapChain(ID3D12Device* device)
+SwapChain::SwapChain(ComPtr<ID3D12Device> device)
 {
 	scDesc.Width = 1280;
 	scDesc.Height = 720;
@@ -235,7 +235,7 @@ SwapChain::SwapChain(ID3D12Device* device)
 	devicePtr = device;
 	sc = nullptr;
 }
-void SwapChain::Create(IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue, HWND hwnd)
+void SwapChain::Create(ComPtr<IDXGIFactory7> dxgiFactory, ID3D12CommandQueue* commandQueue, HWND hwnd)
 {
 	assert(SUCCEEDED(
 		dxgiFactory->CreateSwapChainForHwnd(
@@ -251,7 +251,7 @@ void SwapChain::CreateRenderTargetView()
 		rtvHandle.ptr += i * devicePtr->GetDescriptorHandleIncrementSize(rtvHeapDesc.Type);
 		rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		devicePtr->CreateRenderTargetView(backBuffers[i], &rtvDesc, rtvHandle);
+		devicePtr->CreateRenderTargetView(backBuffers[i].Get(), &rtvDesc, rtvHandle);
 	}
 }
 void SwapChain::CreateDescriptorHeap()
@@ -265,7 +265,7 @@ void SwapChain::CreateDescriptorHeap()
 ID3D12Resource* SwapChain::GetBackBuffersPtr()
 {
 	bbIndex = sc->GetCurrentBackBufferIndex();
-	return backBuffers[bbIndex];
+	return backBuffers[bbIndex].Get();
 }
 
 Blend::Blend(D3D12_RENDER_TARGET_BLEND_DESC* blenddesc)
@@ -329,7 +329,7 @@ void ResourceBarrier::SetState(ID3D12GraphicsCommandList* commandList)
 	state %= 2;
 }
 
-Command::Command(ID3D12Device* device)
+Command::Command(ComPtr<ID3D12Device> device)
 {
 	allocator = nullptr;
 	list = nullptr;
@@ -374,7 +374,7 @@ Fence::Fence()
 	f = nullptr;
 	val = 0;
 }
-void Fence::CreateFence(ID3D12Device* device)
+void Fence::CreateFence(ComPtr<ID3D12Device> device)
 {
 	assert(SUCCEEDED(device->CreateFence(val, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&f))));
 }
@@ -399,7 +399,7 @@ void ShaderResourceView::SetHeapDesc()
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	heapDesc.NumDescriptors = 2056;
 }
-void ShaderResourceView::CreateDescriptorHeap(ID3D12Device* device)
+void ShaderResourceView::CreateDescriptorHeap(ComPtr<ID3D12Device> device)
 {
 	assert(SUCCEEDED(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap))));
 }
@@ -457,7 +457,7 @@ void WorldTransform::UpdateMatrix()
 	if (parent != nullptr) { matWorld *= parent->matWorld; }
 }
 
-Object3d::Object3d(ID3D12Device* device, Type type) :ConstBuf(type)
+Object3d::Object3d(ComPtr<ID3D12Device> device, Type type) :ConstBuf(type)
 {
 	SetResource(size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
 	SetHeapProp(D3D12_HEAP_TYPE_UPLOAD); // ÉqÅ[Évê›íË

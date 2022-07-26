@@ -22,7 +22,7 @@ void Buffer::SetHeapProp(D3D12_HEAP_TYPE Type, D3D12_CPU_PAGE_PROPERTY CPUPagePr
 	heapProp.CPUPageProperty = CPUPageProperty;
 	heapProp.MemoryPoolPreference = MemoryPoolPreference;
 }
-void Buffer::CreateBuffer(ID3D12Device* device)
+void Buffer::CreateBuffer(ComPtr<ID3D12Device> device)
 {
 	device->CreateCommittedResource(
 		&heapProp, D3D12_HEAP_FLAG_NONE,

@@ -27,7 +27,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		debugController->SetEnableGPUBasedValidation(TRUE);
 	}
 #endif
-	ID3D12Device* device = nullptr;
+	ComPtr<ID3D12Device> device = nullptr;
 
 	// 対応レベルの配列
 	D3D_FEATURE_LEVEL levels[] =
@@ -215,7 +215,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		texture[i].CreateBuffer(device);
 		texture[i].Transfer();
 		texture[i].CreateView();
-		device->CreateShaderResourceView(texture[i].buff, &texture[i].view, srv.handle);
+		device->CreateShaderResourceView(texture[i].buff.Get(), &texture[i].view, srv.handle);
 		srv.handle.ptr += incrementSize;
 	}
 #pragma endregion
@@ -261,7 +261,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	depthClearValue.DepthStencil.Depth = 1.0f;
 	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 
-	ID3D12Resource* depthBuff = nullptr;
+	ComPtr<ID3D12Resource> depthBuff = nullptr;
 	device->CreateCommittedResource(
 		&depthHeapProp, D3D12_HEAP_FLAG_NONE,
 		&depthResourceDesc,
@@ -278,7 +278,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	device->CreateDepthStencilView(
-		depthBuff, &dsvDesc, dsvHeap->GetCPUDescriptorHandleForHeapStart());
+		depthBuff.Get(), &dsvDesc, dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	// グラフィックスパイプライン設定
 	Pipeline pipeline{};
