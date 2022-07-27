@@ -1,10 +1,12 @@
 #pragma once
 #include <dinput.h>
+#include <wrl.h>
+using namespace Microsoft::WRL;
 
 class DirectInput
 {
 protected:
-	IDirectInput8* input;
+	ComPtr<IDirectInput8> input;
 
 	void Initialize(WNDCLASSEX w);
 };
@@ -16,7 +18,7 @@ private:
 	BYTE oldkey[256];
 
 public:
-	IDirectInputDevice8* device;
+	ComPtr<IDirectInputDevice8> device;
 
 	void GetInstance(WNDCLASSEX w);
 	void Set(HWND hwnd);

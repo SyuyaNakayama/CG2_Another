@@ -24,7 +24,7 @@ struct Int2 { int width, height; };
 class ShaderBlob
 {
 public:
-	ID3DBlob* blob = nullptr;
+	ComPtr<ID3DBlob> blob = nullptr;
 
 	ShaderBlob(const LPCWSTR fileName, const LPCSTR target, ID3DBlob* errorBlob);
 };
@@ -59,7 +59,7 @@ class RootSignature
 private:
 	D3D12_ROOT_PARAMETER params[3];
 	D3D12_ROOT_SIGNATURE_DESC desc;
-	ID3DBlob* blob;
+	ComPtr<ID3DBlob> blob;
 public:
 	ID3D12RootSignature* rs;
 
