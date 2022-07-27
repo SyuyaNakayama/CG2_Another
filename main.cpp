@@ -314,7 +314,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	rootSignature.SetRootSignature(samplerDesc);				// ルートシグネチャの設定
 	rootSignature.SerializeRootSignature(device.Get(), errorBlob.Get());	// ルートシグネチャのシリアライズ
 	// パイプラインにルートシグネチャをセット
-	pipeline.desc.pRootSignature = rootSignature.rs;
+	pipeline.desc.pRootSignature = rootSignature.rs.Get();
 
 	// パイプランステートの生成
 	pipeline.CreatePipelineState(device.Get());
@@ -402,7 +402,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		command.list->RSSetScissorRects(1, &scissorRect);
 		// パイプラインステートとルートシグネチャの設定コマンド
 		command.list->SetPipelineState(pipeline.state.Get());
-		command.list->SetGraphicsRootSignature(rootSignature.rs);
+		command.list->SetGraphicsRootSignature(rootSignature.rs.Get());
 		command.list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // プリミティブ形状の設定コマンド
 		command.list->IASetVertexBuffers(0, 1, &vertex.view); // 頂点バッファビューの設定コマンド
 		command.list->IASetIndexBuffer(&index.view); // 頂点バッファビューの設定コマンド

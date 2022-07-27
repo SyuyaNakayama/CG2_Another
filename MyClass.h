@@ -61,7 +61,7 @@ private:
 	D3D12_ROOT_SIGNATURE_DESC desc;
 	ComPtr<ID3DBlob> blob;
 public:
-	ID3D12RootSignature* rs;
+	ComPtr<ID3D12RootSignature> rs;
 
 	RootSignature();
 	void SetParam(D3D12_DESCRIPTOR_RANGE descriptorRange);
@@ -86,7 +86,7 @@ public:
 class RenderTargetView
 {
 protected:
-	ID3D12DescriptorHeap* rtvHeap;
+	ComPtr<ID3D12DescriptorHeap> rtvHeap;
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
 	ComPtr<ID3D12Device> devicePtr;
