@@ -21,7 +21,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma region DirectX初期化処理
 #ifdef _DEBUG
 	//デバッグレイヤーをオンに
-	ID3D12Debug1* debugController;
+	ComPtr<ID3D12Debug1> debugController;
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
 		debugController->EnableDebugLayer();
 		debugController->SetEnableGPUBasedValidation(TRUE);
@@ -40,16 +40,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	DirectXInit directX{};
 	directX.AdapterChoice();
-	device = directX.CreateDevice(levels, _countof(levels), device);
+	device = directX.CreateDevice(levels, _countof(levels), device.Get());
 #ifdef _DEBUG
-	ID3D12InfoQueue* infoQueue;
+	ComPtr<ID3D12InfoQueue> infoQueue;
 	if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
 		infoQueue->Release();
 	}
 #endif
-	Command command(device);
+	Command command(device.Get());
 	// コマンドアロケータを生成
 	command.CreateCommandAllocator();
 
@@ -60,13 +60,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	command.CreateCommandQueue();
 
 	// スワップチェーンの設定
-	SwapChain swapChain(device);
-	swapChain.Create(directX.dxgiFactory, command.queue, wAPI.hwnd);
+	SwapChain swapChain(device.Get());
+	swapChain.Create(directX.dxgiFactory.Get(), command.queue.Get(), wAPI.hwnd);
 	swapChain.CreateDescriptorHeap();
 	swapChain.CreateRenderTargetView();
 	// フェンスの生成
 	Fence fence{};
-	fence.CreateFence(device);
+	fence.CreateFence(device.Get());
 
 	// DirectInputの初期化&キーボードデバイスの生成
 	Keyboard keyboard;
@@ -78,7 +78,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	ConstBuf cb = ConstBuf::Type::Material;
 	cb.SetResource(cb.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
 	cb.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD); // ヒープ設定
-	cb.CreateBuffer(device);
+	cb.CreateBuffer(device.Get());
 	cb.Mapping(); // 定数バッファのマッピング
 
 	// 値を書き込むと自動的に転送される
@@ -88,7 +88,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	vector<Object3d> object3ds;
 	for (size_t i = 0; i < OBJ_COUNT; i++)
 	{
-		object3ds.push_back({ device });
+		object3ds.push_back({ device.Get() });
 	}
 
 	ViewProjection viewProjection = { { 0,0,-100 } };
@@ -188,7 +188,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	VertexBuf vertex(static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices)));
 	vertex.SetResource(vertex.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
 	vertex.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD);
-	vertex.CreateBuffer(device);
+	vertex.CreateBuffer(device.Get());
 	vertex.Mapping(vertices, _countof(vertices));
 	vertex.CreateView(); // 頂点バッファビューの作成
 #pragma endregion
@@ -196,14 +196,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	IndexBuf index(static_cast<UINT>(sizeof(uint16_t) * _countof(indices)));
 	index.SetResource(index.size, 1, D3D12_RESOURCE_DIMENSION_BUFFER);
 	index.SetHeapProp(D3D12_HEAP_TYPE_UPLOAD);
-	index.CreateBuffer(device);
+	index.CreateBuffer(device.Get());
 	index.Mapping(indices, _countof(indices));
 	index.CreateView(); // インデックスビューの作成
 #pragma endregion
 #pragma region テクスチャバッファ
 	ShaderResourceView srv{};
 	srv.SetHeapDesc();
-	srv.CreateDescriptorHeap(device);
+	srv.CreateDescriptorHeap(device.Get());
 	srv.GetDescriptorHandleForHeapStart(ShaderResourceView::Type::CPU);
 	TextureBuf texture[2] = { L"Resources/mario.jpg",L"Resources/reimu.png" };
 	UINT incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -212,7 +212,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	{
 		texture[i].SetResource();
 		texture[i].SetHeapProp(D3D12_HEAP_TYPE_CUSTOM, D3D12_CPU_PAGE_PROPERTY_WRITE_BACK, D3D12_MEMORY_POOL_L0);
-		texture[i].CreateBuffer(device);
+		texture[i].CreateBuffer(device.Get());
 		texture[i].Transfer();
 		texture[i].CreateView();
 		device->CreateShaderResourceView(texture[i].buff.Get(), &texture[i].view, srv.handle);
@@ -220,9 +220,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	}
 #pragma endregion
 #pragma region シェーダ
-	ID3DBlob* errorBlob = nullptr; // エラーオブジェクト
-	ShaderBlob vs = { L"BasicVS.hlsl", "vs_5_0", errorBlob }; // 頂点シェーダの読み込みとコンパイル
-	ShaderBlob ps = { L"BasicPS.hlsl", "ps_5_0", errorBlob }; // ピクセルシェーダの読み込みとコンパイル
+	ComPtr<ID3DBlob> errorBlob = nullptr; // エラーオブジェクト
+	ShaderBlob vs = { L"BasicVS.hlsl", "vs_5_0", errorBlob.Get() }; // 頂点シェーダの読み込みとコンパイル
+	ShaderBlob ps = { L"BasicPS.hlsl", "ps_5_0", errorBlob.Get() }; // ピクセルシェーダの読み込みとコンパイル
 
 	// 頂点レイアウト
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
@@ -312,12 +312,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	RootSignature rootSignature{};								// ルートシグネチャ
 	rootSignature.SetParam(descriptorRange);					// ルートパラメータの設定
 	rootSignature.SetRootSignature(samplerDesc);				// ルートシグネチャの設定
-	rootSignature.SerializeRootSignature(device, errorBlob);	// ルートシグネチャのシリアライズ
+	rootSignature.SerializeRootSignature(device.Get(), errorBlob.Get());	// ルートシグネチャのシリアライズ
 	// パイプラインにルートシグネチャをセット
 	pipeline.desc.pRootSignature = rootSignature.rs;
 
 	// パイプランステートの生成
-	pipeline.CreatePipelineState(device);
+	pipeline.CreatePipelineState(device.Get());
 #pragma endregion
 #pragma endregion
 #pragma region ゲームループで使う変数の定義
@@ -373,7 +373,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma endregion
 		// 1.リソースバリアで書き込み可能に変更
 		barrier.desc.Transition.pResource = swapChain.GetBackBuffersPtr(); // バックバッファを指定
-		barrier.SetState(command.list);
+		barrier.SetState(command.list.Get());
 
 		// 2.描画先の変更
 		swapChain.GetHandle();
@@ -424,7 +424,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 #pragma endregion
 #pragma region 画面入れ替え
 		// 5.リソースバリアを戻す
-		barrier.SetState(command.list);
+		barrier.SetState(command.list.Get());
 		// 命令のクローズ
 		assert(SUCCEEDED(command.list->Close()));
 		// コマンドリストの実行

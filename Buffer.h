@@ -19,7 +19,7 @@ public:
 	void SetResource(size_t width, size_t height, D3D12_RESOURCE_DIMENSION Dimension);
 	void SetHeapProp(D3D12_HEAP_TYPE Type, D3D12_CPU_PAGE_PROPERTY CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
 		D3D12_MEMORY_POOL MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN);
-	void CreateBuffer(ComPtr<ID3D12Device> device);
+	void CreateBuffer(ID3D12Device* device);
 };
 
 class ConstBuf :public Buffer

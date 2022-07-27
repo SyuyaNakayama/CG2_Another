@@ -51,7 +51,7 @@ public:
 	void SetShader(ShaderBlob vs, ShaderBlob ps);
 	void SetInputLayout(D3D12_INPUT_ELEMENT_DESC* inputLayout, UINT layoutNum);
 	void SetOthers();
-	void CreatePipelineState(ComPtr<ID3D12Device> device);
+	void CreatePipelineState(ID3D12Device* device);
 };
 
 class RootSignature
@@ -66,7 +66,7 @@ public:
 	RootSignature();
 	void SetParam(D3D12_DESCRIPTOR_RANGE descriptorRange);
 	void SetRootSignature(D3D12_STATIC_SAMPLER_DESC samplerDesc);
-	void SerializeRootSignature(ComPtr<ID3D12Device> device, ID3DBlob* errorBlob);
+	void SerializeRootSignature(ID3D12Device* device, ID3DBlob* errorBlob);
 };
 
 class DirectXInit
@@ -80,7 +80,7 @@ public:
 
 	DirectXInit();
 	void AdapterChoice();
-	ComPtr<ID3D12Device> CreateDevice(D3D_FEATURE_LEVEL* levels, size_t levelsNum, ComPtr<ID3D12Device> device);
+	ID3D12Device* CreateDevice(D3D_FEATURE_LEVEL* levels, size_t levelsNum, ID3D12Device* device);
 };
 
 class RenderTargetView
@@ -107,8 +107,8 @@ public:
 	std::vector<ComPtr<ID3D12Resource>> backBuffers;
 	IDXGISwapChain4* sc;
 
-	SwapChain(ComPtr<ID3D12Device> device);
-	void Create(ComPtr<IDXGIFactory7>, ComPtr<ID3D12CommandQueue> commandQueue, HWND hwnd);
+	SwapChain(ID3D12Device* device);
+	void Create(IDXGIFactory7*, ID3D12CommandQueue* commandQueue, HWND hwnd);
 	void CreateRenderTargetView();
 	void Flip() { assert(SUCCEEDED(sc->Present(1, 0))); }
 	void CreateDescriptorHeap();
@@ -139,7 +139,7 @@ public:
 	D3D12_RESOURCE_BARRIER desc;
 
 	ResourceBarrier();
-	void SetState(ComPtr<ID3D12GraphicsCommandList> commandList);
+	void SetState(ID3D12GraphicsCommandList* commandList);
 };
 
 class Command
@@ -153,7 +153,7 @@ public:
 	ComPtr<ID3D12GraphicsCommandList> list;
 	ComPtr<ID3D12CommandQueue> queue;
 
-	Command(ComPtr<ID3D12Device> device);
+	Command(ID3D12Device* device);
 	void CreateCommandAllocator();
 	void CreateCommandList();
 	void CreateCommandQueue();
@@ -170,7 +170,7 @@ public:
 	UINT64 val;
 
 	Fence();
-	void CreateFence(ComPtr<ID3D12Device> device);
+	void CreateFence(ID3D12Device* device);
 	void Wait();
 };
 
@@ -186,7 +186,7 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE handle;
 
 	void SetHeapDesc();
-	void CreateDescriptorHeap(ComPtr<ID3D12Device> device);
+	void CreateDescriptorHeap(ID3D12Device* device);
 	void GetDescriptorHandleForHeapStart(Type type);
 };
 
@@ -222,6 +222,6 @@ public:
 class Object3d :public ConstBuf, public WorldTransform
 {
 public:
-	Object3d(ComPtr<ID3D12Device> device, Type type = Transform);
+	Object3d(ID3D12Device* device, Type type = Transform);
 	void TransferMatrix(ViewProjection viewProjection);
 };
