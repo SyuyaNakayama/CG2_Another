@@ -59,7 +59,7 @@ class RootSignature
 private:
 	D3D12_ROOT_PARAMETER params[3];
 	D3D12_ROOT_SIGNATURE_DESC desc;
-	ComPtr<ID3DBlob> blob;
+	ID3DBlob* blob;
 public:
 	ComPtr<ID3D12RootSignature> rs;
 
@@ -73,8 +73,8 @@ class DirectXInit
 {
 private:
 	std::vector<IDXGIAdapter4*> adapters;
-	IDXGIAdapter4* tmpAdapter;
-	D3D_FEATURE_LEVEL featureLevel;
+	IDXGIAdapter4* tmpAdapter = nullptr;
+	D3D_FEATURE_LEVEL featureLevel{};
 public:
 	ComPtr<IDXGIFactory7> dxgiFactory;
 

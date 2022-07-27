@@ -385,8 +385,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		command.list->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 #pragma region 描画コマンド
 		// ビューポート設定コマンド
-		viewport.Width = WIN_SIZE.width;
-		viewport.Height = WIN_SIZE.height;
+		viewport.Width = (float)WIN_SIZE.width;
+		viewport.Height = (float)WIN_SIZE.height;
 		viewport.TopLeftX = 0;
 		viewport.TopLeftY = 0;
 		viewport.MinDepth = 0.0f;

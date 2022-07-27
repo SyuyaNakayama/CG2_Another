@@ -127,7 +127,7 @@ RootSignature::RootSignature()
 }
 void RootSignature::SetParam(D3D12_DESCRIPTOR_RANGE descriptorRange)
 {
-	for (size_t i = 0, j = 0; i < 3; i += 2)
+	for (UINT i = 0, j = 0; i < 3; i += 2)
 	{
 		params[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// 定数バッファビュー
 		params[i].Descriptor.ShaderRegister = j++;					// 定数バッファ番号
@@ -205,6 +205,7 @@ ID3D12Device* DirectXInit::CreateDevice(D3D_FEATURE_LEVEL* levels, size_t levels
 			return device;
 		}
 	}
+	return nullptr;
 }
 
 RenderTargetView::RenderTargetView()

@@ -14,8 +14,8 @@ protected:
 class Keyboard :DirectInput
 {
 private:
-	BYTE key[256];
-	BYTE oldkey[256];
+	BYTE key[256]{};
+	BYTE oldkey[256]{};
 
 public:
 	ComPtr<IDirectInputDevice8> device;
