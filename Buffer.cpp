@@ -7,8 +7,8 @@ void Buffer::Init()
 void Buffer::SetResource(size_t width, size_t height, D3D12_RESOURCE_DIMENSION Dimension)
 {
 	resDesc.Dimension = Dimension;
-	resDesc.Width = width;
-	resDesc.Height = height;
+	resDesc.Width = (UINT)width;
+	resDesc.Height = (UINT)height;
 	resDesc.DepthOrArraySize = 1;
 	resDesc.MipLevels = 1;
 	resDesc.SampleDesc.Count = 1;
@@ -74,7 +74,7 @@ void VertexBuf::Mapping(Vertex* vertices, const int ARRAY_NUM)
 {
 	assert(SUCCEEDED(buff->Map(0, nullptr, (void**)&map)));
 
-	for (int i = 0; i < ARRAY_NUM; i++) { map[i] = vertices[i]; }
+	for (int i = 0; i < ARRAY_NUM; i++) { map.Get()[i] = vertices[i]; }
 	buff->Unmap(0, nullptr);
 }
 void VertexBuf::CreateView()
@@ -95,7 +95,7 @@ void IndexBuf::Mapping(uint16_t* indices, const int ARRAY_NUM)
 {
 	assert(SUCCEEDED(buff->Map(0, nullptr, (void**)&map)));
 
-	for (int i = 0; i < ARRAY_NUM; i++) { map[i] = indices[i]; }
+	for (int i = 0; i < ARRAY_NUM; i++) { map.Get()[i] = indices[i]; }
 	buff->Unmap(0, nullptr);
 }
 void IndexBuf::CreateView()

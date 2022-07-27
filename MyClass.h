@@ -59,7 +59,7 @@ class RootSignature
 private:
 	D3D12_ROOT_PARAMETER params[3];
 	D3D12_ROOT_SIGNATURE_DESC desc;
-	ID3DBlob* blob;
+	ComPtr<ID3DBlob> blob;
 public:
 	ComPtr<ID3D12RootSignature> rs;
 
@@ -72,8 +72,8 @@ public:
 class DirectXInit
 {
 private:
-	std::vector<IDXGIAdapter4*> adapters;
-	IDXGIAdapter4* tmpAdapter = nullptr;
+	std::vector<ComPtr<IDXGIAdapter4>> adapters;
+	ComPtr<IDXGIAdapter4> tmpAdapter = nullptr;
 	D3D_FEATURE_LEVEL featureLevel{};
 public:
 	ComPtr<IDXGIFactory7> dxgiFactory;
@@ -105,7 +105,7 @@ private:
 
 public:
 	std::vector<ComPtr<ID3D12Resource>> backBuffers;
-	IDXGISwapChain4* sc;
+	ComPtr<IDXGISwapChain4> sc;
 
 	SwapChain(ID3D12Device* device);
 	void Create(IDXGIFactory7*, ID3D12CommandQueue* commandQueue, HWND hwnd);
@@ -118,7 +118,7 @@ public:
 class Blend
 {
 private:
-	D3D12_RENDER_TARGET_BLEND_DESC* desc;
+	ComPtr<D3D12_RENDER_TARGET_BLEND_DESC> desc;
 public:
 	enum BlendMode
 	{
@@ -148,7 +148,7 @@ private:
 	ComPtr<ID3D12Device> devicePtr;
 	D3D12_COMMAND_QUEUE_DESC queueDesc;
 	ComPtr<ID3D12CommandAllocator> allocator;
-	ID3D12CommandList* cLists;
+	ComPtr<ID3D12CommandList> cLists;
 public:
 	ComPtr<ID3D12GraphicsCommandList> list;
 	ComPtr<ID3D12CommandQueue> queue;
@@ -181,7 +181,7 @@ private:
 public:
 	enum Type { CPU, GPU };
 
-	ID3D12DescriptorHeap* heap;
+	ComPtr<ID3D12DescriptorHeap> heap;
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE handle;
 
@@ -212,7 +212,7 @@ protected:
 	void InitializeMatrix();
 public:
 	XMFLOAT3 scale, rot, trans;
-	WorldTransform* parent = nullptr;
+	ComPtr<WorldTransform> parent;
 
 	WorldTransform();
 	WorldTransform(XMFLOAT3 scale, XMFLOAT3 rot, XMFLOAT3 trans);

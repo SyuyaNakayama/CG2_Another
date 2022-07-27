@@ -197,7 +197,7 @@ ID3D12Device* DirectXInit::CreateDevice(D3D_FEATURE_LEVEL* levels, size_t levels
 	for (size_t i = 0; i < levelsNum; i++)
 	{
 		// 採用したアダプターでデバイスを生成
-		result = D3D12CreateDevice(tmpAdapter, levels[i], IID_PPV_ARGS(&device));
+		result = D3D12CreateDevice(tmpAdapter.Get(), levels[i], IID_PPV_ARGS(&device));
 		if (result == S_OK)
 		{
 			// デバイスを生成できた時点でループを抜ける
@@ -238,10 +238,14 @@ SwapChain::SwapChain(ID3D12Device* device)
 }
 void SwapChain::Create(IDXGIFactory7* dxgiFactory, ID3D12CommandQueue* commandQueue, HWND hwnd)
 {
+	ComPtr<IDXGISwapChain1> swapchain1;
+
 	assert(SUCCEEDED(
 		dxgiFactory->CreateSwapChainForHwnd(
 			commandQueue, hwnd, &scDesc, nullptr, nullptr,
-			(IDXGISwapChain1**)&sc)));
+			&swapchain1)));
+
+	swapchain1.As(&sc);
 }
 void SwapChain::CreateRenderTargetView()
 {
