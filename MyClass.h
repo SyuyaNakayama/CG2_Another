@@ -118,7 +118,7 @@ public:
 class Blend
 {
 private:
-	ComPtr<D3D12_RENDER_TARGET_BLEND_DESC> desc;
+	D3D12_RENDER_TARGET_BLEND_DESC* desc;
 public:
 	enum BlendMode
 	{
@@ -148,7 +148,7 @@ private:
 	ComPtr<ID3D12Device> devicePtr;
 	D3D12_COMMAND_QUEUE_DESC queueDesc;
 	ComPtr<ID3D12CommandAllocator> allocator;
-	ComPtr<ID3D12CommandList> cLists;
+	ID3D12CommandList* cLists;
 public:
 	ComPtr<ID3D12GraphicsCommandList> list;
 	ComPtr<ID3D12CommandQueue> queue;
@@ -181,7 +181,7 @@ private:
 public:
 	enum Type { CPU, GPU };
 
-	ComPtr<ID3D12DescriptorHeap> heap;
+	ID3D12DescriptorHeap* heap;
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE handle;
 
@@ -212,7 +212,7 @@ protected:
 	void InitializeMatrix();
 public:
 	XMFLOAT3 scale, rot, trans;
-	ComPtr<WorldTransform> parent;
+	WorldTransform* parent = nullptr;
 
 	WorldTransform();
 	WorldTransform(XMFLOAT3 scale, XMFLOAT3 rot, XMFLOAT3 trans);

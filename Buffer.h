@@ -33,8 +33,8 @@ public:
 	enum Type { Material, Transform };
 	UINT size;
 
-	ComPtr<ConstBufferDataMaterial> mapMaterial;
-	ComPtr<ConstBufferDataTransform> mapTransform;
+	ConstBufferDataMaterial* mapMaterial;
+	ConstBufferDataTransform* mapTransform;
 
 	ConstBuf(Type type);
 	void Mapping();
@@ -57,7 +57,7 @@ public:
 		}
 	};
 private:
-	ComPtr<Vertex> map;
+	Vertex* map;
 public:
 	D3D12_VERTEX_BUFFER_VIEW view;
 	UINT size;
@@ -70,7 +70,7 @@ public:
 class IndexBuf :public Buffer
 {
 private:
-	ComPtr<uint16_t> map;
+	uint16_t* map;
 public:
 	D3D12_INDEX_BUFFER_VIEW view;
 	UINT size;

@@ -74,7 +74,7 @@ void VertexBuf::Mapping(Vertex* vertices, const int ARRAY_NUM)
 {
 	assert(SUCCEEDED(buff->Map(0, nullptr, (void**)&map)));
 
-	for (int i = 0; i < ARRAY_NUM; i++) { map.Get()[i] = vertices[i]; }
+	for (int i = 0; i < ARRAY_NUM; i++) { map[i] = vertices[i]; }
 	buff->Unmap(0, nullptr);
 }
 void VertexBuf::CreateView()
@@ -95,7 +95,7 @@ void IndexBuf::Mapping(uint16_t* indices, const int ARRAY_NUM)
 {
 	assert(SUCCEEDED(buff->Map(0, nullptr, (void**)&map)));
 
-	for (int i = 0; i < ARRAY_NUM; i++) { map.Get()[i] = indices[i]; }
+	for (int i = 0; i < ARRAY_NUM; i++) { map[i] = indices[i]; }
 	buff->Unmap(0, nullptr);
 }
 void IndexBuf::CreateView()

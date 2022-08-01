@@ -315,7 +315,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	rootSignature.SerializeRootSignature(device.Get(), errorBlob.Get());	// ルートシグネチャのシリアライズ
 	// パイプラインにルートシグネチャをセット
 	pipeline.desc.pRootSignature = rootSignature.rs.Get();
-
 	// パイプランステートの生成
 	pipeline.CreatePipelineState(device.Get());
 #pragma endregion
@@ -326,7 +325,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; // 青っぽい色
 	D3D12_VIEWPORT viewport{};
 	D3D12_RECT scissorRect{};
-
+	
 	bool texHandle = 0;
 #pragma endregion
 	// ゲームループ
